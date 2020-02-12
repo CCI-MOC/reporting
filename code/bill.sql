@@ -185,7 +185,6 @@ CREATE TABLE catalog_item (
                 CONSTRAINT catalog_item_pk PRIMARY KEY (catalog_item_id)
 );
 
-
 CREATE SEQUENCE item_item_id_seq;
 CREATE TABLE item (
                 item_id BIGINT NOT NULL DEFAULT nextval('item_item_id_seq'),
@@ -195,7 +194,6 @@ CREATE TABLE item (
                 item_type_id BIGINT NOT NULL,
                 CONSTRAINT item_pk PRIMARY KEY (item_id)
 );
-
 
 ALTER SEQUENCE item_item_id_seq OWNED BY item.item_id;
 CREATE TABLE item2item (
@@ -381,9 +379,18 @@ ON DELETE NO ACTION
 ON UPDATE NO ACTION
 NOT DEFERRABLE;
 
+/*
+Temporarily disabling uniqueness check for summarizing due to error: 
+ERROR:  there is no unique constraint matching given keys for referenced table "raw_item_ts"
+
+Notes: raw_item_ts has PRIMARY KEY based on (item_id, start_ts)
+
+TODO: fixme!
+
 ALTER TABLE summarized_item_ts ADD CONSTRAINT raw_item_ts_summarized_item_ts_fk
 FOREIGN KEY (item_id)
 REFERENCES raw_item_ts (item_id)
 ON DELETE NO ACTION
 ON UPDATE NO ACTION
 NOT DEFERRABLE;
+*/
