@@ -31,14 +31,14 @@ ENV CREDS_SRC "./config/moc_billing.cred"
 ################################################################################
 # Add User and Groups
 # NOTE: user 'postgres' comes for free w/ install (above)
-# RUN groupadd --gid ${WORKGROUP_ID} ${WORKGROUP}
-# RUN useradd -m -d /reporting -u 999 -g ${WORKGROUP_ID} reporting
+RUN groupadd --gid ${WORKGROUP_ID} ${WORKGROUP}
+RUN useradd -m -d /reporting -u 999 -g ${WORKGROUP_ID} reporting
 
 ################################################################################
 # Add mounting points
 RUN touch ${PGLOG} && chgrp postgres ${PGLOG} && chmod g+w ${PGLOG}
 RUN mkdir -p ${PGDATA} && chown -R postgres:postgres ${PGDATA}
-# RUN mkdir -p ${WORKDIR} && chgrp ${WORKGROUP} ${WORKDIR}
+RUN mkdir -p ${WORKDIR} && chgrp ${WORKGROUP} ${WORKDIR}
 
 ################################################################################
 # Copy code into image
@@ -49,8 +49,7 @@ ADD ${SRC} ${WORKDIR}
 # Configure run profile
 VOLUME ["${LOGDIR}", "${PGDATA}"]
 WORKDIR ${WORKDIR}
-# USER ${WORKUSER}:${WORKGROUP}
-# CMD ["perl", "${WORKDIR}/get_info.pl"]
+ENTRYPOINT ["bash", "/reporting/main.sh"]
 
 ################################################################################
 # Add privileged information (credentials, etc)
