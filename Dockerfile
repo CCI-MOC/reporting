@@ -18,6 +18,8 @@ ENV LOGDIR "/var/log"
 ENV PGDIR "/usr/local/pgsql"
 ENV PGDATA "${PGDIR}/data"
 ENV PGLOG "${LOGDIR}/postgres-server"
+ENV PGUSER "postgres"
+ENV PGGROUP "postgres"
 
 ENV WORKUSER reporting
 ENV WORKGROUP reporting
@@ -25,6 +27,7 @@ ENV WORKGROUP_ID 6555
 
 ENV SRC "./code"
 ENV WORKDIR "/reporting"
+ENV MAIN "main.sh"
 
 ################################################################################
 # Add User and Groups
@@ -34,20 +37,21 @@ RUN useradd -m -d /reporting -u 999 -g ${WORKGROUP_ID} reporting
 
 ################################################################################
 # Add mounting points
-RUN touch ${PGLOG} && chgrp postgres ${PGLOG} && chmod g+w ${PGLOG}
-RUN mkdir -p ${PGDATA} && chown -R postgres:postgres ${PGDATA}
-RUN mkdir -p ${WORKDIR} && chgrp ${WORKGROUP} ${WORKDIR}
+RUN touch ${PGLOG} && chgrp ${PGGROUP} ${PGLOG} && chmod g+w ${PGLOG}
+RUN mkdir -p ${PGDATA} && chown -R ${PGUSER}:${PGGROUP} ${PGDATA}
 
 ################################################################################
 # Copy code into image
+RUN mkdir -p ${WORKDIR}
 ADD ${SRC} ${WORKDIR}
 RUN chown -R ${WORKUSER}:${WORKGROUP} ${WORKDIR}
+RUN chmod a+x ${WORKDIR}/${MAIN}
 
 ################################################################################
 # Configure run profile
 VOLUME ["${LOGDIR}", "${PGDATA}"]
 WORKDIR ${WORKDIR}
-ENTRYPOINT ["bash", "/reporting/main.sh"]
+ENTRYPOINT [${WORKDIR}/${MAIN}]
 
 ################################################################################
 # Config Loaded via Secrets
