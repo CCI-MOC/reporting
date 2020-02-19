@@ -1,0 +1,23 @@
+kind: "BuildConfig"
+apiVersion: "v1"
+metadata:
+  name: "testing-build.reporting.massopen.local"
+spec:
+  runPolicy: "Serial"
+  triggers:
+    - type: "GitHub"
+      github:
+        secret: "q4-minishift-testing.local"
+  source:
+    git:
+      uri: "https://github.com/tsachleben/MOC_Reporting"
+    secrets:
+      - secret: 
+          name: "q4-minishift-testing.local"
+  output:
+    to:
+      kind: "ImageStreamTag"
+      name: "moc_reporting_testing:latest"
+  strategy: 
+    dockerStrategy:
+      dockerfilePath: "Dockerfile"

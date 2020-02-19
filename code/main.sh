@@ -20,6 +20,6 @@ PERL_MAIN=/reporting/get_info.pl
 
 su $POSTGRES_USER -c "pg_ctl -l $POSTGRES_LOG start"
 sleep 1
-su $WORKING_USER -c "perl $PERL_MAIN" &
-wait
+su $WORKING_USER -c "perl $PERL_MAIN"
 su $POSTGRES_USER -c "pg_ctl stop"
+sleep 5

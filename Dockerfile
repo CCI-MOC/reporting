@@ -25,8 +25,6 @@ ENV WORKGROUP_ID 6555
 
 ENV SRC "./code"
 ENV WORKDIR "/reporting"
-ENV CREDS_FILE "${WORKDIR}/../.bills.cred"
-ENV CREDS_SRC "./config/moc_billing.cred"
 
 ################################################################################
 # Add User and Groups
@@ -42,8 +40,8 @@ RUN mkdir -p ${WORKDIR} && chgrp ${WORKGROUP} ${WORKDIR}
 
 ################################################################################
 # Copy code into image
-# --chown=${WORKUSER}:${WORKGROUP}
 ADD ${SRC} ${WORKDIR}
+RUN chown -R ${WORKUSER}:${WORKGROUP} ${WORKDIR}
 
 ################################################################################
 # Configure run profile
@@ -52,7 +50,4 @@ WORKDIR ${WORKDIR}
 ENTRYPOINT ["bash", "/reporting/main.sh"]
 
 ################################################################################
-# Add privileged information (credentials, etc)
-# TODO: Handle outside of build-time
-# --chown=${WORKUSER}:${WORKGROUP}
-ADD ${CREDS_SRC} ${CREDS_FILE}
+# Config Loaded via Secrets

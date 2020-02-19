@@ -1,0 +1,9 @@
+kind: "ImageStreamTag"
+apiVersion: "v1"
+metadata:
+  name: "moc_reporting_testing:latest"
+  labels:
+    app: "myproject"
+tag:
+  name: "latest"
+  generation: 1

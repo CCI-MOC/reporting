@@ -1,0 +1,10 @@
+kind: "ImageStream"
+apiVersion: "v1"
+metadata: 
+  name: "moc_reporting_testing"
+  generation: 1
+  labels: 
+    app: "myproject"
+spec: {}
+status: 
+  tags: []

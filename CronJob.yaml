@@ -1,0 +1,26 @@
+kind: "CronJob"
+apiVersion: "batch/v1beta1"
+metadata:
+  name: "reporting.massopen.local"
+spec:
+  schedule: "*/5 * * * *"
+  concurrencyPolicy: "Forbid"
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 150
+      template:
+        metadata:
+          name: "runner.cron.reporting.massopen.local"
+        spec:
+          containers:
+          - name: "moc-reporting-runner"
+            image: "moc_reporting_test:latest"
+            volumeMounts:
+              - name: "moc-creds"
+                mountPath: "/moc-creds"
+                readOnly: true
+          volumes:
+            - name: "moc-creds"
+              secret:
+                secretName: "moc-creds"
+          restartPolicy: "Never"
