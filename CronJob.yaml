@@ -19,8 +19,14 @@ spec:
               - name: "moc-creds"
                 mountPath: "/moc-creds"
                 readOnly: true
+              - name: "reporting-db"
+                mountPath: "/usr/local/pgsql/data"
+                readOnly: false
           volumes:
             - name: "moc-creds"
               secret:
                 secretName: "moc-creds"
+            - name: "reporting-db"
+              persistentVolumeClaim:
+                claimName: "moc-reporting-db"
           restartPolicy: "Never"
