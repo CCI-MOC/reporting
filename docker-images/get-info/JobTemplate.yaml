@@ -1,0 +1,85 @@
+apiVersion: v1
+kind: Template
+metadata: 
+  name: reporting_templates_get-info
+objects:
+- apiVersion: batch/v1beta1
+  kind: CronJob
+  metadata:
+    name: get-info
+  spec:
+    schedule: "*/15 * * * *"
+    concurrencyPolicy: Forbid
+    jobTemplate:
+      spec:
+        activeDeadlineSeconds: 750
+        template:
+          metadata:
+            name: get-info
+          spec:
+            initContainers:
+            - name: check-db-conn
+              image: postgres:latest
+              env:
+              - name: PGHOST
+                value: ${POSTGRES_HOST}
+              - name: PGDATABASE
+                valueFrom:
+                  secretKeyRef:
+                    name: ${POSTGRES_SECRETS}
+                    key: ${POSTGRES_SECRETS_DBNAME_FIELD}
+              - name: PGUSER
+                valueFrom:
+                  secretKeyRef:
+                    name: ${POSTGRES_SECRETS}
+                    key: ${POSTGRES_SECRETS_USER_FIELD}
+              - name: PGPASSWORD
+                valueFrom:
+                  secretKeyRef: 
+                    name: ${POSTGRES_SECRETS}
+                    key: ${POSTGRES_SECRETS_PASSWORD_FIELD}
+              command: ['psql', '-c', '\q']
+            containers:
+            - name: get-info
+              image: >-
+                docker-registry.default.svc:5000/reporting-test/get-info:latest
+              env: 
+              - name: POSTGRES_HOST
+                value: ${POSTGRES_HOST}
+              - name: POSTGRES_DATABASE
+                valueFrom:
+                  secretKeyRef:
+                    name: ${POSTGRES_SECRETS}
+                    key: ${POSTGRES_SECRETS_DBNAME_FIELD}
+              - name: POSTGRES_USER
+                valueFrom:
+                  secretKeyRef:
+                    name: ${POSTGRES_SECRETS}
+                    key: ${POSTGRES_SECRETS_USER_FIELD}
+              - name: POSTGRES_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: ${POSTGRES_SECRETS}
+                    key: ${POSTGRES_SECRETS_PASSWORD_FIELD}
+              - name: DEBUG
+                value: "1"
+            restartPolicy: Never
+parameters:
+- name: POSTGRES_HOST
+  description: "Hostname of the postgres instance to connect to"
+  from: "[A-Za-z0-9-]{1,63}"
+  generate: "expression"
+- name: POSTGRES_SECRETS
+  description: "Openshift name of the secrets object containing auth secrets"
+  value: "postgresql"
+- name: POSTGRES_SECRETS_DBNAME_FIELD
+  description: "Field in the secrets object to get the database name"
+  value: "database-name"
+- name: POSTGRES_SECRETS_USER_FIELD
+  description: "Field in the secrets object to get the username"
+  value: "database-user"
+- name: POSTGRES_SECRETS_PASSWORD_FIELD
+  description: "Field in the secrets object to get the password"
+  value: "database-password"
+labels:
+  template: "reporting_templates_get-info"

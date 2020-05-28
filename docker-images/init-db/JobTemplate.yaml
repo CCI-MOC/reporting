@@ -1,0 +1,85 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: reporting_templates_init-db
+  annotations:
+    openshift.io/display-name: "MOC Reporting Init DB Job"
+  tags: "jobs,reporting"
+  openshift.io/provider-display-name: "Mass Open Cloud"
+objects:
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    name: init-db
+  spec:
+    parallelism: 1
+    completions: 1
+    template: 
+      metadata:
+        name: init-db
+      spec:
+        activeDeadlineSeconds: 300
+        initContainers:
+        - name: check-db-conn
+          image: postgres:latest
+          env:
+          - name: PGHOST
+            value: ${POSTGRES_HOST}
+          - name: PGDATABASE
+            valueFrom:
+              secretKeyRef:
+                name: ${POSTGRES_SECRETS}
+                key: ${POSTGRES_SECRETS_DBNAME_FIELD}
+          - name: PGUSER
+            valueFrom:
+              secretKeyRef:
+                name: ${POSTGRES_SECRETS}
+                key: ${POSTGRES_SECRETS_USER_FIELD}
+          - name: PGPASSWORD
+            valueFrom:
+              secretKeyRef: 
+                name: ${POSTGRES_SECRETS}
+                key: ${POSTGRES_SECRETS_PASSWORD_FIELD}
+          command: ['psql', '-c', '\q']
+        containers:
+        - name: init-db
+          image: >-
+            docker-registry.default.svc:5000/reporting-test/init-db:latest
+          env: 
+          - name: POSTGRES_HOST
+            value: ${POSTGRES_HOST}
+          - name: POSTGRES_DB
+            valueFrom:
+              secretKeyRef:
+                name: ${POSTGRES_SECRETS}
+                key: ${POSTGRES_SECRETS_DBNAME_FIELD}
+          - name: POSTGRES_USER
+            valueFrom:
+              secretKeyRef:
+                name: ${POSTGRES_SECRETS}
+                key: ${POSTGRES_SECRETS_USER_FIELD}
+          - name: POSTGRES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: ${POSTGRES_SECRETS}
+                key: ${POSTGRES_SECRETS_PASSWORD_FIELD}
+        restartPolicy: OnFailure
+parameters:
+- name: POSTGRES_HOST
+  description: "Hostname of the postgres instance to connect to"
+  from: "[A-Za-z0-9-]{1,63}"
+  generate: "expression"
+- name: POSTGRES_SECRETS
+  description: "Openshift name of the secrets object containing auth secrets"
+  value: "postgresql"
+- name: POSTGRES_SECRETS_DBNAME_FIELD
+  description: "Field in the secrets object to get the database name"
+  value: "database-name"
+- name: POSTGRES_SECRETS_USER_FIELD
+  description: "Field in the secrets object to get the username"
+  value: "database-user"
+- name: POSTGRES_SECRETS_PASSWORD_FIELD
+  description: "Field in the secrets object to get the password"
+  value: "database-password"
+labels:
+  template: "reporting_templates_init-db"

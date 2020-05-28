@@ -468,13 +468,6 @@ sub main
     store_billing_info($conn,$os_info);
 
     del_conn($conn);
+
+    return 0;
     }
-
-main();
-exit;
-
-
-#print "A-->\n\n";
-#print Dumper{%$os_info}; 
-#exit;
-
