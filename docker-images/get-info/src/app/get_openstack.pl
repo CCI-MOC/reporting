@@ -83,12 +83,11 @@ sub build_instace_to_proj_index
     my $proj=shift;
     my $index;
 
-    foreach my $proj_id (keys $proj)
-        {
-        if($proj->{$proj_id}->{vm_cnt}>0)
+    for my $proj_id (keys %{$proj}) {
+        if($proj->{$proj_id}->{vm_cnt} > 0)
             {
             my $vms = $proj->{$proj_id}->{VM};
-            foreach my $vm_id (keys $vms)
+            foreach my $vm_id (keys %{$vms})
                 {
                 $index->{$vm_id}=$proj_id;
                 }
@@ -232,27 +231,27 @@ sub tally_hours
     my $total_time_on;
     my $time_on;
     
-    my @ts = (sort keys $events);
+    my @ts = (sort keys %{$events});
     my $t = pop @ts;
     my $t2 = $events->{$t}->{end_ts};
-    if($events->{$t}->{event_type} eq 'exists' and $events->{$t}->{status} eq 'acitive')
+    if($events->{$t}->{event_type} eq 'exists' and $events->{$t}->{status} eq 'active')
         {
         $start_time=$t1;
         $end_time=$t2;
         $power_on=1;
         }
-    elsif($events->{$t}->{event_type} eq 'exists' and $events->{$t}->{status} ne 'acitive')
+    elsif($events->{$t}->{event_type} eq 'exists' and $events->{$t}->{status} ne 'active')
         {
         $start_time=undef;
         $end_time=undef;
         $power_on=0;
         }   
-    elsif($events->{$t}->{event_type} eq 'power.on' and $events->{$t}->{status} eq 'acitive')
+    elsif($events->{$t}->{event_type} eq 'power.on' and $events->{$t}->{status} eq 'active')
         {
         $start_time=$t; $end_time=undef;
         $power_on=1;
         }
-    elsif($events->{$t}->{event_type} eq 'power.off' and $events->{$t}->{status} ne 'acitive')
+    elsif($events->{$t}->{event_type} eq 'power.off' and $events->{$t}->{status} ne 'active')
         {
         $start_time=$t1;       $end_time=$t2;
         $time_on=timediff($start_time,$end_time);
@@ -266,12 +265,12 @@ sub tally_hours
         {
         if($power_on==1)
             {
-            if($events->{$t}->{event_type} eq 'exists' and $events->{$t}->{status} eq 'acitive')
+            if($events->{$t}->{event_type} eq 'exists' and $events->{$t}->{status} eq 'active')
                 {
                 $end_time=$t2;
                 $power_on=1;
                 }
-            elsif($events->{$t}->{event_type} eq 'exists' and $events->{$t}->{status} ne 'acitive')
+            elsif($events->{$t}->{event_type} eq 'exists' and $events->{$t}->{status} ne 'active')
                 {
                 # warning (going from power_on state to inactive - missed the power off?
                 $time_on=timediff($start_time,$end_time);
@@ -281,7 +280,7 @@ sub tally_hours
                 $end_time=undef;
                 $power_on=0;
                 }
-            elsif($events->{$t}->{event_type} eq 'power.on' and $events->{$t}->{status} eq 'acitive')
+            elsif($events->{$t}->{event_type} eq 'power.on' and $events->{$t}->{status} eq 'active')
                 {
                 # warning powered on state and turning the power on again - missed the power off?
                 $time_on=timediff($start_time,$end_time);
@@ -290,7 +289,7 @@ sub tally_hours
                 $start_time=$t1;
                 $power_on=1;
                 }
-            elsif($events->{$t}->{event_type} eq 'power.off' and $events->{$t}->{status} ne 'acitive')
+            elsif($events->{$t}->{event_type} eq 'power.off' and $events->{$t}->{status} ne 'active')
                 {
                 $end_time=$t1;
                 $time_on=timediff($start_time,$end_time);
@@ -302,25 +301,25 @@ sub tally_hours
             }
         elsif($power_on==0)
             {
-            if($events->{$t}->{event_type} eq 'exists' and $events->{$t}->{status}='acitive')
+            if($events->{$t}->{event_type} eq 'exists' and $events->{$t}->{status}='active')
                 {
                 # warn - missed the power on event
                 $start_time=$t;
                 $end_time=$t;
                 $power_on=1;
                 }
-            elsif($events->{$t}->{event_type} eq 'exists' and $events->{$t}->{status}!='acitive')
+            elsif($events->{$t}->{event_type} eq 'exists' and $events->{$t}->{status}!='active')
                 {
                 $start_time=undef;
                 $end_time=undef;
                 $power_on=0;
                 }
-            elsif($events->{$t}->{event_type} eq 'power.on' and $events->{$t}->{status}='acitive')
+            elsif($events->{$t}->{event_type} eq 'power.on' and $events->{$t}->{status}='active')
                 {
                 $start_time=$t; $end_time=$t;
                 $power_on=1;
                 }
-            elsif($events->{$t}->{event_type} eq 'power.off' and $events->{$t}->{status}!='acitive')
+            elsif($events->{$t}->{event_type} eq 'power.off' and $events->{$t}->{status}!='active')
                 {
                 # warn 2 power is off, and a power off event occured.  missed the power on - nothing to tally.
                 $start_time=undef;     $end_time=undef;
@@ -345,7 +344,7 @@ sub tally_hours2
     my $total_time_on=0;
     my $total_amt=0.0;
 
-    my @ts = (sort keys $events);
+    my @ts = (sort keys %{$events});
     my $t = pop @ts;
     $t1 = str2time($t);
     $t2 = str2time($events->{$t}->{end_ts});
@@ -427,7 +426,7 @@ sub vm_subsection
            ."\\begin{tabular}{l l r r }\n"
            ."VM Name & VM ID & Hours & Amt \\\\\n";
 
-    foreach my $vm_id (sort keys $vm)
+    foreach my $vm_id (sort keys %{$vm})
         {
         my $hours;
         my $amt;

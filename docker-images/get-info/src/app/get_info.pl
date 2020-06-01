@@ -1,6 +1,6 @@
+
 use YAML::XS;
 use Parse::CSV;
-use JSON;
 use Data::Dumper;
 use Time::Local;
 use Date::Parse;
@@ -10,28 +10,22 @@ use DBI;
 use POSIX;
 use strict;
 
+require 'creds.pl';
 require 'get_csv.pl';
 require 'get_openstack.pl';
 
-# ----  move to bill.pm ---
-sub get_cred
-    {
-    my $file=shift;
-    my $creds=undef;
-    my $text=undef;
-    if(open(FP,$file)) { while(my $line=<FP>) { chomp($line); $text=$text.$line; } }
-    print $text;
-    if(defined($text)) { $creds=decode_json($text); }
-    return $creds;
-    }
+my $DEBUG = 0;
 
 sub get_conn
     {
-    my $db_name=shift;
-    my $user=shift;
-    my $pass=shift;
+    my $db_spec=shift;
 
-    my $conn = DBI->connect("dbi:Pg:dbname=".$db_name,$user,$pass);
+    my $db      = $db_spec->{db_name}   or die "Database Spec missing key 'db_name'\n";
+    my $host    = $db_spec->{host}      or die "Database Spec missing key 'host'\n";
+    my $user    = $db_spec->{user}      or die "Database Spec missing key 'user'\n";
+    my $pass    = $db_spec->{pass}      or die "Database Spec missing key 'pass'\n";
+
+    my $conn = DBI->connect("dbi:Pg:host='$host';db='$db'", $user, $pass);
     return $conn;
     }
 
@@ -439,35 +433,43 @@ sub store_billing_info
     }
 
 sub main
-    {
+{
     my $done=0;
     my $os_info;
     my $n=0;
-    my $creds=get_cred("../.bills.cred");
-    my $user;
-    my $type;
-    my $auth_url;
-    my $pass;
-    my $pg_user;
-    my $pg_pass;
+    my $creds=load_creds();
+
+    if (!($creds->{database})) 
+    {
+        die 'Missing Database Credentials';
+    }
 
     foreach my $service (@{$creds->{services}})
+    {
+        if (ref $service eq 'HASH')
         {
-        print Dumper{%$service};  
-
-        if(defined($service))
+            if ($DEBUG) 
             {
-            if($service->{'type'} eq 'OpenStack')
-                {
-                $os_info=get_openstack_info($os_info,$service);
-                }
+                print Dumper{%$service};
             }
-        } 
 
-    my $conn=get_conn($creds->{'database'}->{'dbname'},$creds->{'database'}->{'user'},$creds->{'database'}->{'pass'});
+            if ($service->{'type'} eq 'OpenStack')
+            {
+                $os_info=get_openstack_info($os_info,$service);
+            }
+            else 
+            {
+                die 'Unknown Service Type: $service->{type}';
+            }
+        }
+    } 
+
+    my $conn=get_conn($creds->{'database'});
     store_billing_info($conn,$os_info);
 
     del_conn($conn);
 
     return 0;
-    }
+}
+
+1

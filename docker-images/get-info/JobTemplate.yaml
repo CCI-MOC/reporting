@@ -61,6 +61,17 @@ objects:
                   secretKeyRef:
                     name: ${POSTGRES_SECRETS}
                     key: ${POSTGRES_SECRETS_PASSWORD_FIELD}
+              - name: CREDS_TEXT
+                value: |
+                  {
+                    "services": [],
+                    "database": {
+                      "host":    { "fromEnv": "POSTGRES_HOST" },
+                      "db_name": { "fromEnv": "POSTGRES_DATABASE" },
+                      "user":    { "fromEnv": "POSTGRES_USER" },
+                      "pass":    { "fromEnv": "POSTGRES_PASSWORD" }
+                    }
+                  }
               - name: DEBUG
                 value: "1"
             restartPolicy: Never

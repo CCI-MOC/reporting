@@ -28,6 +28,8 @@ Date::Parse 2.33
 
 DBI 1.643
 
+DBD::Pg 3.12
+
 
 =head1 AUTHOR
 
