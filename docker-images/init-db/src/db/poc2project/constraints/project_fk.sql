@@ -1,0 +1,7 @@
+
+ALTER TABLE poc2project ADD CONSTRAINT poc2project_project_fk
+FOREIGN KEY (project_id)
+REFERENCES project (project_id)
+ON DELETE NO ACTION
+ON UPDATE NO ACTION
+NOT DEFERRABLE;

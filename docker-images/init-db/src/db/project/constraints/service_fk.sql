@@ -1,0 +1,7 @@
+
+ALTER TABLE project ADD CONSTRAINT project_service_fk
+FOREIGN KEY (service_id)
+REFERENCES service (service_id)
+ON DELETE NO ACTION
+ON UPDATE NO ACTION
+NOT DEFERRABLE;

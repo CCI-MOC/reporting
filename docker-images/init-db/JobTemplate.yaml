@@ -46,19 +46,19 @@ objects:
           image: >-
             docker-registry.default.svc:5000/reporting-test/init-db:latest
           env: 
-          - name: POSTGRES_HOST
+          - name: PGHOST
             value: ${POSTGRES_HOST}
-          - name: POSTGRES_DB
+          - name: PGDATABASE
             valueFrom:
               secretKeyRef:
                 name: ${POSTGRES_SECRETS}
                 key: ${POSTGRES_SECRETS_DBNAME_FIELD}
-          - name: POSTGRES_USER
+          - name: PGUSER
             valueFrom:
               secretKeyRef:
                 name: ${POSTGRES_SECRETS}
                 key: ${POSTGRES_SECRETS_USER_FIELD}
-          - name: POSTGRES_PASSWORD
+          - name: PGPASSWORD
             valueFrom:
               secretKeyRef:
                 name: ${POSTGRES_SECRETS}

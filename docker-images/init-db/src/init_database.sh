@@ -1,34 +1,10 @@
 # init_database.sh
-# Loads the database definition from sql and initializes the environment 
-# specified database with the given
-# the following
-#  - POSTGRES_USER     - User with admin control on the postgres instance
-#                        Default: postgres
-#  - POSTGRES_PASSWORD - Password for the postgresql user. Will attempt to 
-#                        authenticate without a password if not provided
-#  - POSTGRES_HOST     - Host to initialize the database on
-#                        Default: localhost
-
-################################################################################
-# Function Definitions
-function uri_encode {
-  # From: <https://stackoverflow.com/questions/296536/how-to-urlencode-data-for-curl-command>
-  local string="${1}"
-  local strlen=${#string}
-  local encoded=""
-  local pos c o
-
-  for (( pos=0 ; pos<strlen ; pos++ )); do
-     c=${string:$pos:1}
-     case "$c" in
-        [-_.~a-zA-Z0-9] ) o="${c}" ;;
-        * )               printf -v o '%%%02x' "'$c"
-     esac
-     encoded+="${o}"
-  done
-  echo "${encoded}" 
-}
-
+# Builds and commits transactions from the database description to initialize a
+# new database.
+# This script uses the psql cli underneath, and so responds to the psql cli 
+# Environment Variables. For full documentation, see:
+# <https://www.postgresql.org/docs/9.3/libpq-envars.html>
+#  - EXCEPTION: PGAPPNAME is forcibly set to 'init-db'
 ################################################################################
 # Validate Input
 if [ "$#" -ne 0 ]; then
@@ -36,7 +12,7 @@ if [ "$#" -ne 0 ]; then
   exit 1
 fi
 
-PSQL=`env which psql`
+PSQL="$(/usr/bin/env which psql)"
 if [ -z "$PSQL" ]; then
   echo "Missing PSQL executable!"
   exit 1
@@ -44,21 +20,53 @@ fi
 
 ################################################################################
 # Variable Definitions
-SRC_ROOT=/code
-BILL_SQL=${SRC_ROOT}/bill.sql
+SRC_ROOT="$(dirname $0)"
+DB_SPEC="${SRC_ROOT}/db"
 
-PG_USER=$(uri_encode "${POSTGRES_USER:-postgres}")
-if [ -z "${POSTGRES_PASSWORD}" ]; then
-  PG_AUTH="${PG_USER}"
-else
-  PG_PASS=$(uri_encode "${POSTGRES_PASSWORD}")
-  PG_AUTH="${PG_USER}:${PG_PASS}"
-fi
-PG_LOCATION="${PG_AUTH}@${POSTGRES_HOST:-localhost}"
-PG_DB=$(uri_encode "${POSTGRES_DB:-postgres}")
-PG_APP_ID=$(uri_encode "${0}")
-PG_URI="postgresql://${PG_LOCATION}/${PG_DB}?application_name=${PG_APP_ID}"
+WORK_DIR="$(mktemp -d)"
+WORK=(
+  "${WORK_DIR}/tables.sql      ${DB_SPEC}/*/table.sql"
+  "${WORK_DIR}/constraints.sql ${DB_SPEC}/*/constraints/*"
+  "${WORK_DIR}/data.sql        ${DB_SPEC}/*/data.sql" )
+
+BEGIN="BEGIN TRANSACTION;"
+END="END;"
 
 ################################################################################
 # Program Main
-${PSQL} "${PG_URI}" < ${BILL_SQL}
+
+# Validate Postgres Configuration
+if [ -z "${PGDATABASE}" ] ; then
+  echo "Missing target database; should be stored in \$PGDATABASE"
+  exit 1
+fi
+if [ -z "${PGPASSWORD}" -a -z "${PGPASSFILE}" ]; then
+  echo "WARN: No authentication method provided"
+fi
+export PGAPPNAME="init-db"
+
+# Build each transaction
+for tupl in "${WORK[@]}" ; do
+  # Push the list [ DEST IN1 IN2 ... ] to $@
+  set -- $tupl
+  # Pop DEST from $@
+  dest_file=$1
+  shift 
+  # Write Beginning-of-Transaction indicator to DEST
+  echo "$BEGIN" > $dest_file
+  # Append all files to DEST
+  cat $@ >> $dest_file
+  # Write End-of-Transaction indicator to DEST
+  echo "$END" >> $dest_file
+done
+
+# Run each transaction or die
+for tupl in "${WORK[@]}" ; do
+  set -- $tupl
+  src_file=$(eval echo $1)
+  ${PSQL} < $src_file || exit $?
+done
+
+rm -rf $WORKING
+
+echo "Done"

@@ -1,0 +1,7 @@
+
+ALTER TABLE raw_item_ts ADD CONSTRAINT raw_item_ts_item_fk
+FOREIGN KEY (item_id)
+REFERENCES item (item_id)
+ON DELETE NO ACTION
+ON UPDATE NO ACTION
+NOT DEFERRABLE;
