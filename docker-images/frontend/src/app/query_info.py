@@ -1,3 +1,4 @@
+
 class QueryInfo:
     def __init__(self, table_name, sql_query, params_required, create_temp_table):
         self.table_name = table_name

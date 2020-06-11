@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 
 import logging
 import argparse
@@ -152,8 +151,7 @@ def write_summary(cur, agg_summary, period, start_date, end_date, item_id, catal
     return 1 # Success
 
 
-if __name__ == '__main__':
-
+def main():
     # Check Args
     parser = argparse.ArgumentParser()
     parser.add_argument("--start_date", help="Start date of summary rollup (In the form of YYYY-MM-DD).", required=True)
