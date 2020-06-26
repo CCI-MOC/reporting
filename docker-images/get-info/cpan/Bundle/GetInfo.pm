@@ -1,6 +1,6 @@
 package Bundle::GetInfo;
 
-$VERSION = '0.01';
+$VERSION = '0.02';
 
 1;
 
@@ -16,7 +16,7 @@ perl -MCPAN -e 'install Bundle::GetInfo'
 
 =head1 CONTENTS
 
-WWW::Curl 4.17
+LWP 6.45
 
 YAML::XS 0.82
 

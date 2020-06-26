@@ -44,36 +44,44 @@ objects:
               image: >-
                 docker-registry.default.svc:5000/reporting-test/get-info:latest
               env: 
-              - name: POSTGRES_HOST
+              - name: CREDS_FILE
+                value: ${CONFIG_PATH}
+              - name: PGHOST
                 value: ${POSTGRES_HOST}
-              - name: POSTGRES_DATABASE
+              - name: PGDATABASE
                 valueFrom:
                   secretKeyRef:
                     name: ${POSTGRES_SECRETS}
                     key: ${POSTGRES_SECRETS_DBNAME_FIELD}
-              - name: POSTGRES_USER
+              - name: PGUSER
                 valueFrom:
                   secretKeyRef:
                     name: ${POSTGRES_SECRETS}
                     key: ${POSTGRES_SECRETS_USER_FIELD}
-              - name: POSTGRES_PASSWORD
+              - name: PGPASSWORD
                 valueFrom:
                   secretKeyRef:
                     name: ${POSTGRES_SECRETS}
                     key: ${POSTGRES_SECRETS_PASSWORD_FIELD}
-              - name: CREDS_TEXT
-                value: |
-                  {
-                    "services": [],
-                    "database": {
-                      "host":    { "fromEnv": "POSTGRES_HOST" },
-                      "db_name": { "fromEnv": "POSTGRES_DATABASE" },
-                      "user":    { "fromEnv": "POSTGRES_USER" },
-                      "pass":    { "fromEnv": "POSTGRES_PASSWORD" }
-                    }
-                  }
+              - name: OSUSER
+                valueFrom:
+                  secretKeyRef:
+                    name: ${OPENSHIFT_SECRETS}
+                    key: ${OPENSHIFT_SECRETS_USER_FIELD}
+              - name: OSPASS
+                valueFrom:
+                  secretKeyRef:
+                    name: ${OPENSHIFT_SECRETS}
+                    key: ${OPENSHIFT_SECRETS_PASSWORD_FIELD}
               - name: DEBUG
                 value: "1"
+              volumes:
+              - name: billing-config
+                configMap:
+                  name: billing
+                  items:
+                  - key: config
+                    path: ${CONFIG_PATH}
             restartPolicy: Never
 parameters:
 - name: POSTGRES_HOST
@@ -81,16 +89,28 @@ parameters:
   from: "[A-Za-z0-9-]{1,63}"
   generate: "expression"
 - name: POSTGRES_SECRETS
-  description: "Openshift name of the secrets object containing auth secrets"
+  description: "Openshift name of the secrets object containing postgres secrets"
   value: "postgresql"
 - name: POSTGRES_SECRETS_DBNAME_FIELD
-  description: "Field in the secrets object to get the database name"
+  description: "Field in the postgres secrets object to get the database name"
   value: "database-name"
 - name: POSTGRES_SECRETS_USER_FIELD
-  description: "Field in the secrets object to get the username"
+  description: "Field in the postgres secrets object to get the username"
   value: "database-user"
 - name: POSTGRES_SECRETS_PASSWORD_FIELD
-  description: "Field in the secrets object to get the password"
+  description: "Field in the postgres secrets object to get the password"
   value: "database-password"
+- name: OPENSHIFT_SECRETS
+  description: "Openshift name of the secrets objects containing Openshift secrets"
+  value: "creds-kaizen"
+- name: OPENSHIFT_SECRETS_USER_FIELD
+  description: "Field in the openshift secrets object to get the username"
+  value: "username"
+- name: OPENSHIFT_SECRETS_PASSWORD_FIELD
+  description: "Field in the openshift secrets object to get the password"
+  value: "password"
+- name: CONFIG_PATH
+  description: "Path inside container for config object to be placed"
+  value: "/etc/billing.json"
 labels:
   template: "reporting_templates_get-info"

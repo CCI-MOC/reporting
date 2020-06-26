@@ -1,0 +1,16 @@
+{
+    "database": {
+        "host":    { "fromEnv": "PGHOST" },
+        "db_name": { "fromEnv": "PGDATABASE" },
+        "user":    { "fromEnv": "PGUSER" },
+        "pass":    { "fromEnv": "PGPASSWORD" }
+    },
+    "services": [
+        {
+            "type": "OpenStack",
+            "url":  "https://kaizen.massopen.cloud:13000/" ,
+            "user": { "fromEnv": "OSUSER" },
+            "pass": { "fromEnv": "OSPASS" }
+        }
+    ]
+}

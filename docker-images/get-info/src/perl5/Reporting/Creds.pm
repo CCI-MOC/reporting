@@ -1,5 +1,8 @@
 
+package Reporting::Creds;
+
 use JSON;
+use strict;
 
 my $DEBUG = 0;
 
@@ -21,6 +24,7 @@ sub load_env_refs
         {
             print Dumper{%$e};
         }
+
         if (defined $e->{fromEnv})
         {
             return $ENV{$e->{fromEnv}};
@@ -36,7 +40,7 @@ sub load_env_refs
     return $e;
 }
 
-sub load_creds
+sub load
 {
     my $text=undef;
 
@@ -47,7 +51,7 @@ sub load_creds
     elsif (defined $ENV{'CREDS_FILE'})
     {
         my $file = $ENV{'CREDS_FILE'};
-        open(my $fp, '<', $file) or die 'Cannot open file: $file';
+        open(my $fp, '<', $file) or die "Cannot open file: $file";
         {
             local $/;
             $text = <$fp>;
@@ -55,14 +59,9 @@ sub load_creds
         close($fp);
     }
 
-    if(defined($text)) 
-    {
-        return load_env_refs(decode_json($text));
-    }
-    else 
-    {
-        die 'No Credential object or filename found!';
-    }
+    die "No Credential object or filename found!\n" unless defined($text);
+    return load_env_refs(decode_json($text));
 }
 
-1
+1;
+__END__;
