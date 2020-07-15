@@ -1,9 +1,17 @@
 {
-  "services": [ ],
   "database": {
     "host":    "postgres",
     "db_name": "reporting",
     "user":    "get_info",
     "pass":    "123456"
-  }
+  },
+  "services": [
+    {
+      "type":   "OpenStack",
+      "url":    "http://192.168.1.139/identity",
+      "user":   "admin",
+      "domain": "default",
+      "pass":   "LklE1h2iKqJO0nWIvd2O"
+    }
+  ]
 }

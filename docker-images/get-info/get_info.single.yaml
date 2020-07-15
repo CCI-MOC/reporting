@@ -62,7 +62,7 @@ parameters:
     from: "[A-Za-z0-9-]{1,63}"
     generate: "expression"
   - name: POSTGRES_SECRETS
-    description: "Openshift name of the secrets object containing postgres secrets"
+    description: "Name of the secrets object containing postgres secrets"
     value: "postgresql"
   - name: POSTGRES_SECRETS_DBNAME_FIELD
     description: "Field in the postgres secrets object to get the database name"
@@ -74,7 +74,7 @@ parameters:
     description: "Field in the postgres secrets object to get the password"
     value: "database-password"
   - name: OPENSHIFT_SECRETS
-    description: "Openshift name of the secrets objects containing Openshift secrets"
+    description: "Name of the secrets objects containing Openshift secrets"
     value: "creds-kaizen"
   - name: OPENSHIFT_SECRETS_USER_FIELD
     description: "Field in the openshift secrets object to get the username"
