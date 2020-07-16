@@ -1,5 +1,4 @@
 
-
 DROP TABLE if exists poc cascade;
 
 CREATE TABLE poc (
@@ -12,3 +11,4 @@ CREATE TABLE poc (
                 address_id BIGINT NOT NULL,
                 CONSTRAINT poc_pk PRIMARY KEY (poc_id)
 );
+CREATE SEQUENCE poc_poc_id_seq OWNED BY poc.poc_id;
