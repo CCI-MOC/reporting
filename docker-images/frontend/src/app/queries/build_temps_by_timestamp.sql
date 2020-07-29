@@ -5,7 +5,7 @@ CREATE TEMP TABLE item_temp AS
         WHERE item_id IN
             (SELECT item_id
                 FROM raw_item_ts
-                where start_ts between '{}' and '{}'));
+                where start_ts between '{start_ts}' and '{end_ts}'));
 
 CREATE TEMP TABLE item_type_temp AS
     (SELECT *

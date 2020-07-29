@@ -1,5 +1,4 @@
 
-import argparse
 import os
 
 from datetime import datetime
@@ -8,14 +7,14 @@ from io import StringIO
 
 from flask import Flask, request, Response, send_file, after_this_request
 
-import db
 from auth_middleware import authorized
 from csv_dump import query_and_write_data, write_table_output
-from query_info import QueryInfo
+from db import Database
 from util import get_config
 
 app = Flask(__name__)
-config = get_config() 
+config = get_config(os.environ['CREDS_FILE'])
+db = Database.connect(config['host'], config['port'], config['db_name'], config['user'], config['pass'])
 
 def param_check(params):
   """ Checks the JSON parameters for a given POST request for CSV dump
@@ -32,10 +31,10 @@ def param_check(params):
       Boolean representing whether the JSON parameters pass the checks
   """
   return all([
-      len(params.items()) == 4,
-      all(field in params for field in ["start_ts", "end_ts", "type", "name"]),
-      params["type"] in ["institution", "project"]
-      # TODO: Add format check of start_ts and end_ts
+    len(params.items()) == 4,
+    all(field in params for field in ["start_ts", "end_ts", "type", "name"]),
+    params["type"] in ["institution", "project"]
+    # TODO: Add format check of start_ts and end_ts
   ])
 
 @app.route('/csvdata/<table>', methods=['POST'])
@@ -49,41 +48,29 @@ def csv_dump_table(table):
   """
   params = request.get_json()
 
-  response = Response("Bad Request", 400)
   if param_check(params):
-    #TODO: Add Auth with username/password
-    """
-    elif not auth:
-      response = Response("Auth Failed", 401)
-    """
     # Determine query type
-    query = None
     if params["type"] == "project":
-      query = QueryInfo.get_query_infos_by_project(params["name"], params["start_ts"], params["end_ts"])
+      db.build_temps_by_project(id=params["name"], collect=False)
     elif params["type"] == "institution":
-      query = QueryInfo.get_query_infos_by_institution(params["name"], params["start_ts"], params["end_ts"])
+      db.build_temps_by_institution(id=params["name"], collect=False)
     else:
-      response = Response("Invalid query type: " + params["type"], 404)
-
-    if query is not None:
-      conn = db.connect(config['host'], config['dbname'], config['user'], config['pass'])
-      """
-      #TODO:
-        - Convert to streaming CSV output as we receive each row from the db as
-          using StringIO requires buffering whole dump in memory
-      #Issues:
-        - WSGI doesn't like Chunked Transfer-Encoding:
-          <https://www.python.org/dev/peps/pep-3333/#other-http-features>
-          <https://github.com/pallets/flask/issues/367>
-          Possible workaround with iterators:
-          <https://dev.to/rhymes/comment/2inm>
-        - Not clear how to stick a Writer (input to write_table_output)
-          to a Reader (input to Response)
-      """
-      s = StringIO()
-      write_table_output(conn.cursor(), query, s)
-      response = Response(s.getvalue(), 200, mimetype='text/csv')
-  return response
+      return Response("Invalid query type: " + params["type"], 404)
+    # TODO: Convert to streaming CSV output
+    #   - as we receive each row from the db as
+    #     using StringIO requires buffering whole dump in memory
+    # Issues:
+    #   - WSGI doesn't like Chunked Transfer-Encoding:
+    #     <https://www.python.org/dev/peps/pep-3333/#other-http-features>
+    #     <https://github.com/pallets/flask/issues/367>
+    #     Possible workaround with iterators:
+    #     <https://dev.to/rhymes/comment/2inm>
+    #   - Not clear how to stick a Writer (input to write_table_output)
+    #     to a Reader (input to Response)
+    out_buffer = StringIO()
+    write_table_output(db, table, out_buffer)
+    return Response(out_buffer.getvalue(), 200, mimetype='text/csv')
+  return Response("Bad Request", 400)
 
 @app.route('/csvdata', methods=['POST'])
 @authorized
@@ -97,8 +84,8 @@ def csv_dump():
     Example request:
 
     curl -H "Content-type: application/json; charset=utf-8"
-       -X POST http://<host_ip>:<port_ip>/csvdata 
-       -o archive.zip 
+       -X POST http://<host_ip>:<port_ip>/csvdata
+       -o archive.zip
        -d '{"start_ts":"2019-01-01","end_ts":"2019-04-01","type":"project","name":1}'
 
     Returns:
@@ -109,11 +96,6 @@ def csv_dump():
   response = Response("Bad Request", 400)
   if param_check(params):
     query = None
-    #TODO: Add Auth with username/password (As middleware?)
-    # Connection to database
-    conn = db.connect(config['host'], config['dbname'], config['user'], config['pass'])
-    cur = conn.cursor()
-
     # File name and Path Parameters for dump
     current_ts = datetime.now().strftime("%m_%d_%Y_%H:%M:%S")
     base_path = "{}/api_temp_dump".format(os.getcwd())
@@ -125,16 +107,16 @@ def csv_dump():
     # Determine Query of Project/Institution
     query = None
     if params["type"] == "project":
-      query = QueryInfo.get_query_infos_by_project(params["name"], params["start_ts"], params["end_ts"])
+      query = queries.build_temps_by_project(params["name"], params["start_ts"], params["end_ts"])
     elif params["type"] == "institution":
-      query = QueryInfo.get_query_infos_by_institution(params["name"], params["start_ts"], params["end_ts"])
+      query = queries.build_temps_by_institution(params["name"], params["start_ts"], params["end_ts"])
     else: # Query is invalid
       response = Response("Invalid query type: " + params["type"], 404)
 
     # Query and write dump to temp_path
     if query is not None:
       for query_info in query:
-        query_and_write_data(cur, query_info, temp_path, "{}_{}".format(params["start_ts"], params["end_ts"]))
+        query_and_write_data(db, query_info, temp_path, "{}_{}".format(params["start_ts"], params["end_ts"]))
 
       # Create zip archive of dump
       make_archive(archive_path, "zip", temp_path)
