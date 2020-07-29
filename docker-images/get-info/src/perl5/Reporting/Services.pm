@@ -1,11 +1,14 @@
 
 package Reporting::Services;
 
+use strict;
+use Data::Dumper;
+
 use Reporting::Services::OpenStack;
 
-use strict;
 
-my $DEBUG = $ENV{DEBUG};
+my $DEBUG = 0;
+
 
 sub create {
     my ( $service, $ua ) = @_;

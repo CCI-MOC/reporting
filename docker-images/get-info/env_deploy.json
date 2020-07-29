@@ -8,6 +8,7 @@
   "services": [
     {
       "type":   "OpenStack",
+      "id":     "kaizen",
       "url":    "https://kaizen.massopen.cloud:13000",
       "user":   { "fromEnv": "OSUSER" },
       "domain": "default",

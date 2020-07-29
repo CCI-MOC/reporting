@@ -3,6 +3,7 @@ package Reporting::Services::OpenStack::Cinder;
 
 use JSON;
 use strict;
+use v5.32;
 
 
 my $DEBUG = $ENV{DEBUG};
@@ -11,8 +12,6 @@ my $DEBUG = $ENV{DEBUG};
 sub new
 {
     my ($cls, $ua, $url) = @_;
-
-    print("Cinder URL: $url\n");
 
     return bless {
                 useragent => $ua,
@@ -47,13 +46,12 @@ sub get_volumes
             size    => $v->{size},
         };
 
-        foreach my $i (@{$v->{attachments}})
+        foreach my $attachment (@{$v->{attachments}})
         {
-            my $attachment_id = $v->{attachment_id};
-            $store->{item_ts2item_ts}->{$attachment_id} = {
+            $store->{item_ts2item_ts}->{$attachment->{attachment_id}} = {
                 type    => "vm-disk",
                 project => $project_uid,
-                id1     => $i->{server_id},
+                id1     => $attachment->{server_id},
                 id2     => $volume_uid,
             };
         }

@@ -27,12 +27,15 @@ sub new
 {
     my ($cls, $service, $ua) = @_;
 
-    return (undef, "Missing URL")       unless $service->{url};
-    return (undef, "Missing User")      unless $service->{user};
-    return (undef, "Missing Password")  unless $service->{pass};
-    return (undef, "Missing UserAgent") unless $ua;
+    return (undef, "Missing URL")           unless $service->{url};
+    return (undef, "Missing User")          unless $service->{user};
+    return (undef, "Missing Password")      unless $service->{pass};
+    return (undef, "Missing Service Name")  unless $service->{id};
+    return (undef, "Missing UserAgent")     unless $ua;
 
-    my $self = bless {}, $cls;
+    my $self = bless {
+            id => $service->{id}
+    }, $cls;
     my $err;
 
     print("OpenStack: Create Useragent\n") if $DEBUG;
@@ -45,12 +48,8 @@ sub new
     $self->{useragent}->get_unscoped_token();
 
     print("OpenStack: Load Catalog\n") if $DEBUG;
-    #my $ua_admin = 
     ($self->{catalog}, $err)    = Reporting::Services::OpenStack::Catalog-> new( $self->{keystone} );
     return (undef, $err) if $err;
-
-    # print("Catalog: \n", Dumper{%{$self->{catalog}}});
-    print("Nova Url: ", $self->{catalog}->nova, "\n");
 
     print("OpenStack: Create Subservices\n") if $DEBUG;
     # TODO: Refactor to create a corresponding backend for every (supported?) item in the catalog
@@ -142,17 +141,16 @@ sub store
     my ($self, $db) = @_;
 
     my $timestamp   = $db->get_timestamp();
-    my $service_id  = $db->get_service_id("kaizen"); # TODO: Take as input from config
+    my $service_id  = $db->get_service_id($self->{id});
     my @steps = (
         # [ "Get OpenStack Projects",     sub { return $self->{keystone}->    load_os_projects(@_) } ],
-        # [ "",                           sub { return $self->{useragent}->   get_scoped_token($_[0]->{admin}->{id}) } ],
-        [ "Load Project Info",          sub { return $self->{keystone}->    get_all_projects(@_) } ],
-        # [ "Load Users",                 sub { return $self->{keystone}->    get_all_users(@_) } ],
-        # [ "Get OpenStack VM Flavors",   sub { return $self->{nova}->        get_os_flavors(@_) } ],
-        [ "Get Network Configuration",  sub { return $self->{neutron}->     get_floating_ips(@_) } ],
-        # [ "Get OpenStack Instances",    sub { return $self->{nova}->        get_all_vm_details(@_) } ],
-        # [ "Load Cinder Volume Data",    sub { return $self->{cinder}->      get_volumes(@_) } ],
-        # [ "Load Panko Data",            sub { return $self->{panko}->       get_data(@_) } ],
+        [ "Load Project Info",          sub { return $self->{keystone}->get_all_projects(@_) } ],
+        [ "Load Users",                 sub { return $self->{keystone}->get_all_users(@_) } ],
+        [ "Get OpenStack VM Flavors",   sub { return $self->{nova}->    get_os_flavors(@_) } ],
+        [ "Get Network Configuration",  sub { return $self->{neutron}-> get_floating_ips(@_) } ],
+        [ "Get OpenStack Instances",    sub { return $self->{nova}->    get_all_vm_details(@_) } ],
+        [ "Load Cinder Volume Data",    sub { return $self->{cinder}->  get_volumes(@_) } ],
+        [ "Load Panko Data",            sub { return $self->{panko}->   get_data(@_) } ],
         [ "End of OpenStack Info",      sub { } ],
     );
 

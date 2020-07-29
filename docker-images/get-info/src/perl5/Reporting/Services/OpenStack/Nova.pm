@@ -25,7 +25,6 @@ sub get_os_flavors
     print("Nova::get_os_flavors\n") if $DEBUG;
     my ($self, $store) = @_;
     my $endpoint = "/flavors/detail";
-    my $flavor;
 
     # Tariq: Not sure why this is different from the other methods; all are using
     # the Admin Token as X-Auth-Token
@@ -41,7 +40,8 @@ sub get_os_flavors
     my $flavor_array=from_json($resp->decoded_content);
     foreach my $f (@{$flavor_array->{flavors}})
     {
-        $store->{flavors}->{$flavor}->{$f->{id}} = {
+        print("-- $f->{id} => $f->{name}\t($f->{vcpus} cores, $f->{ram}MB RAM, $f->{disk}(G?)B store)\n") if $DEBUG;
+        $store->{flavors}->{$f->{id}} = {
             name    => $f->{name},
             vcpus   => $f->{vcpus},
             ram     => $f->{ram},
@@ -56,7 +56,7 @@ sub get_vm_details
     print("Nova::get_vm_details\n") if $DEBUG;
     my ($self, $store, $vm_id) = @_;
 
-    # Note: Function doesn't change store so make no-op ~Tariq
+    # Note: Function doesn't change store so made no-op ~Tariq
     return undef;
 
     # if(!defined($vm_id) or length($vm_id)==0)
@@ -76,17 +76,17 @@ sub get_vm_details
 sub get_all_vm_details
 {
     print("Nova::get_all_vm_details\n") if $DEBUG;
-    my ($self, $store, $flavors) = @_;
+    my ($self, $store) = @_;
+
+    my $flavors = $store->{flavors};
+    $flavors = $self->get_os_flavors($store) unless $flavors;
+
     my $endpoint = "/servers/detail";
     my $query = "?all_tenants=true";
-
     my $resp = $self->{useragent}->authorized_request("$self->{url}$endpoint$query");
     return $resp->status_line unless $resp->is_success;
     my $vm_details = from_json($resp->decoded_content);
-    my $flavors = $store->{flavors};
-    #print $resp;
-    #print Dumper(%$vm_details);
-    #exit;
+
     foreach my $vm (@{$vm_details->{servers}})
     {
         #print "$user_id, $vm->{id}\n";
@@ -148,10 +148,12 @@ sub get_all_vm_details
         #    'OS-EXT-STS:vm_state' => 'building'
         #    'status' => 'BUILD'
 
-        my $project_id=$vm->{tenant_id};
         my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
         my $ts = sprintf("%04d-%02d-%02d %02d:%02d:%02d", $year+1900, $mon+1, $mday, $hour, $min, $sec);
-        if(length($vm->{project_id})>0) { $project_id=$vm->{project_id}; }
+
+        my $project_id=$vm->{tenant_id};
+        $project_id = $vm->{project_id} if length($vm->{project_id});
+
         $store->{project}->{$project_id}->{VM}->{$vm->{id}}->{events}->{$ts}->{user_id}=$vm->{user_id};
         $store->{project}->{$project_id}->{VM}->{$vm->{id}}->{events}->{$ts}->{end_ts}=$ts;
         $store->{project}->{$project_id}->{VM}->{$vm->{id}}->{events}->{$ts}->{state}=$vm->{status};
@@ -159,17 +161,18 @@ sub get_all_vm_details
         $store->{project}->{$project_id}->{VM}->{$vm->{id}}->{events}->{$ts}->{flavor}=$vm->{flavor};
         $store->{project}->{$project_id}->{VM}->{$vm->{id}}->{events}->{$ts}->{event_type}="instant";
 
-        if(defined($flavors->{$vm->{flavor}}) && $flavors->{$vm->{flavor}}->{vcpus}>0)
-            {
+        if (defined($flavors->{$vm->{flavor}}) and $flavors->{$vm->{flavor}}->{vcpus})
+        {
             # First try to get it from the flavor - in the case of resizing, this doesn't always work.
             $store->{project}->{$project_id}->{VM}->{$vm->{id}}->{events}->{$ts}->{vcpus}=$flavors->{$vm->{flavor}}->{vcpus};
             $store->{project}->{$project_id}->{VM}->{$vm->{id}}->{events}->{$ts}->{mem}=$flavors->{$vm->{flavor}}->{ram}/1024;
             $store->{project}->{$project_id}->{VM}->{$vm->{id}}->{events}->{$ts}->{disk_gb}=$flavors->{$vm->{flavor}}->{disk};
-            }
+        }
         else
-            {
+        {
             #my ($vcpu, $ram, $disk) =get_vm_details($store,$vm->{id});
-            }
+        }
+
         #need to get the floating ip addresses done first
         #maybe need to get the networks/subnets done first 
         # example of address:

@@ -77,7 +77,7 @@ sub new
 our $AUTOLOAD;
 sub AUTOLOAD {
     print("$AUTOLOAD\n") if $DEBUG;
-    my ($self) = @_;
+    my ($self) = shift;
     my $called = $AUTOLOAD =~ s/.*:://r;
 
     my $entry = $self->{catalog}->{$called} or return undef;

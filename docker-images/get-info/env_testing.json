@@ -8,10 +8,11 @@
   "services": [
     {
       "type":   "OpenStack",
-      "url":    "http://192.168.1.139/identity",
+      "id":     "devstack",
+      "url":    "http://openstack/identity",
       "user":   "admin",
       "domain": "default",
-      "pass":   "LklE1h2iKqJO0nWIvd2O"
+      "pass":   "testing_password"
     }
   ]
 }

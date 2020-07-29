@@ -87,7 +87,7 @@ sub get_unscoped_token
     my $token       = $resp->header('X-Subject-Token');
     my $json_fields = from_json($resp->decoded_content);
     $self->_cache_result_data($json_fields);
-    print("Unscoped Token: ", $token, "\n") if $DEBUG;
+
     return ({
             token           => $token,
             token_expiry    => $json_fields->{token}->{expires_at},
@@ -126,13 +126,14 @@ sub get_scoped_token
     die $err                if $err;
     die $resp->status_line  unless $resp->is_success;
 
-    my $token       = $resp->header('X-Subject-Token');
-    my $json_fields = from_json($resp->decoded_content);
-    print("Scoped Token: ", $token, "\n") if $DEBUG;
+    my $scoped_token        = $resp->header('X-Subject-Token');
+    my $json_fields         = from_json($resp->decoded_content);
+
+    print("Scoped Token: ", $scoped_token, "\n") if $DEBUG;
     print("Token Fields: ", Dumper{%$json_fields}, "\n") if $DEBUG;
 
     return ({
-            token           => $token,
+            token           => $scoped_token,
             token_expiry    => $json_fields->{token}->{expires_at},
             user_id         => $json_fields->{token}->{user}->{id},
             domain_id       => $json_fields->{token}->{user}->{domain}->{id}
@@ -203,7 +204,7 @@ sub get_add_project
     $store->{project} = {} unless exists $store->{project};
     if (exists $store->{projects}->{$project_id})
     {
-        print("-- Return early; project already loaded\n") if $DEBUG;
+        # print("-- Return early; project already loaded\n") if $DEBUG;
         return undef;
     }
 
@@ -249,8 +250,15 @@ sub get_user2project
     foreach my $p (@{$json_fields->{projects}})
     {
         print("---- ", $user_id, " => ", $p->{id}, "\n") if $DEBUG;
-        # TODO: Fetch User Role Data
-        $store->{users2projects}->{$user_id}->{$p->{id}}=1;
+        # TODO: Fetch User Role Data (?)
+        # Note: Re: ?
+        #       Roles may not be immediately obvious from data in Keystone as
+        #       Roles are primarily an administrative function
+        push @{$store->{users2projects}->{$user_id}}, {
+            project_uuid    => $p->{id},
+            user_uuid       => $user_id,
+            role            => undef
+        };
     }
     return undef;
 }
@@ -267,16 +275,29 @@ sub get_all_users
     my $json_fields = from_json($resp->decoded_content);
     # print Dumper{%$json_fields} if $DEBUG;
 
-    foreach my $user (@{$json_fields->{"users"}})
+    foreach my $user (@{$json_fields->{users}})
     {
+        $user->{id}     = "" unless $user->{id};
+        $user->{name}   = "" unless $user->{name};
+        $user->{email}  = "" unless $user->{email};
+
         print("-- ", $user->{id}, " == ", $user->{name}, " <", $user->{email}, ">\n") if $DEBUG;
+
+        $store->{users}->{$user->{id}} = {} unless $store->{users}->{$user->{id}};
+        $store->{users}->{$user->{id}}->{service_ids} = [] unless $store->{users}->{$user->{id}}->{service_ids};
+
         # $store->{users}->{$user->{id}}->{domain}=$user->{domain_id};
-        $store->{users}->{$user->{id}}->{name}=$user->{name};
-        $store->{users}->{$user->{id}}->{email}=$user->{email};
-        $store->{users}->{$user->{id}}->{enabled}=$user->{enabled};
-        $store->{users}->{$user->{id}}->{default_project}=$user->{default_project};
-        # $store->{users}->{$user->{id}}->{enabled}=$user->{};
-        # $store->{users}->{$user->{id}}->{email}=$user->{email};
+        $store->{users}->{$user->{id}}->{name}              = $user->{name};
+        $store->{users}->{$user->{id}}->{email}             = $user->{email};
+        $store->{users}->{$user->{id}}->{enabled}           = $user->{enabled};
+        $store->{users}->{$user->{id}}->{default_project}   = $user->{default_project};
+
+        # Note: The following approach, while likely more flexible long-term, requires
+        #       a major Refactor to get the id for the current service into the current 
+        #       keystone API Object ~TS
+        # push @{$store->{users}->{$user->{id}}->{service_ids}}, {
+        #     $self->{} => $user->{id}
+        # };
 
         #for each user get the list of projects
         $self->get_user2project($store, $user->{id});

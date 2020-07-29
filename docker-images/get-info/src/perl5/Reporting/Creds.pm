@@ -44,13 +44,13 @@ sub load
 {
     my $text=undef;
 
-    if (defined $ENV{'CREDS_TEXT'})
+    if (defined $ENV{CREDS_TEXT})
     {
-        $text = $ENV{'CREDS_TEXT'};
+        $text = $ENV{CREDS_TEXT};
     }
-    elsif (defined $ENV{'CREDS_FILE'})
+    elsif (defined $ENV{CREDS_FILE})
     {
-        my $file = $ENV{'CREDS_FILE'};
+        my $file = $ENV{CREDS_FILE};
         open(my $fp, '<', $file) or die "Cannot open file: $file";
         {
             local $/;

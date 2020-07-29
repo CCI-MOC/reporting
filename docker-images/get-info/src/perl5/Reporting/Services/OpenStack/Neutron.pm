@@ -34,7 +34,7 @@ sub get_floating_ips
             floating_ip_address => $fip->{floating_ip_address},
             floating_network_id => $fip->{floating_network_id},
             port_id             => $fip->{port_id},
-            project_id          => $fip->{project_id},
+            project_uuid        => $fip->{project_id},
             status              => $fip->{status},
             router_id           => $fip->{router_id},
         };

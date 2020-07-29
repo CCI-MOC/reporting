@@ -19,9 +19,9 @@ sub main
     my $creds = Reporting::Creds::load();
 
     die "ERROR: Missing Database Credentials\n"                     if (!($creds->{database})) ;
-    die "ERROR: Credentials not an object:\n$creds->{database}\n"   if (ref $creds->{database} != 'HASH');
+    die "ERROR: Credentials not an object:\n$creds->{database}\n"   if (ref $creds->{database} ne 'HASH');
     die "ERROR: Missing Services\n"                                 if (!($creds->{services}));
-    die "ERROR: Services not an array:\n$creds->{services}\n"       if (ref $creds->{services} != 'ARRAY');
+    die "ERROR: Services not an array:\n$creds->{services}\n"       if (ref $creds->{services} ne 'ARRAY');
 
     if (scalar @{$creds->{services}} == 0)
     {
@@ -29,18 +29,40 @@ sub main
         return 1;
     }
 
-    my $db   = $creds->{database}->{db_name} or die "Database Spec missing key 'db_name'\n";
-    my $host = $creds->{database}->{host}    or die "Database Spec missing key 'host'\n";
-    my $user = $creds->{database}->{user}    or die "Database Spec missing key 'user'\n";
-    my $pass = $creds->{database}->{pass}    or die "Database Spec missing key 'pass'\n";
-
     print ("Connecting...") if $DEBUG;
-    my $db = Reporting::DB->connect("dbi:Pg:host='$host';db='$db'", $user, $pass, {
-        PrintError => 0,
-        RaiseError => 1
-    });
+    my $db = Reporting::DB->connect($creds->{database});
     print "\n" if $DEBUG;
     die "Could not connect to database?\n" unless $db;
+
+    # Note: Proposed driver Changes ~TS
+    #       (Perform a symmetric set diff operation)
+    #       - Load State from Database
+    #           - Initialize proper objects based on loaded state
+    #       - Load State in Underlying Services
+    #           - RAII: when hitting an unseen object, auto create db entry/s
+    #       - Mark Objects that have disappeared
+
+    # Note: Algorithm of the above ~TS
+    #   100 var active      <= db_load_active
+    #   150 var inactive    <= db_load_inactive
+    #   199 var active_seen <= []
+    #   200 loop services:
+    #   210     if service in active:
+    #   211         active_seen += [service]
+    #   212         active      -= [service]
+    #   220     else:
+    #   221         db_create(service)
+    #   222         active_seen += [service]
+    #   300 loop active:
+    #   310     inactive    += [entry]
+
+    # Note: Program Stucture Goals ~TS
+    #       - Simplify mapping between service data and db tables
+    #           - Would like a declarative binding; eg:
+    #               Keystone->users <=> db->users
+    #               Keystone->users->projects <=> db->users2projects
+    #       - 
+
 
     my $ua = LWP::UserAgent->new(
             #protocols_allowed   => [ 'http', 'https' ],
@@ -56,13 +78,11 @@ sub main
     } 
     foreach my $service (@loaded_services)
     {
-        $service->store($db);
-        die $_ if $_;
+        my $err = $service->store($db);
+        die $err if $err;
     }
 
     $db->disconnect();
-    die $_ if $_;
-
     return 0;
 }
 
