@@ -1,10 +1,10 @@
 
 # get-info
-FROM perl_cpan:5.28-latest
+FROM perl_cpan:latest
 
 # Install Dependencies
-ADD ./cpan/Bundle/* 				/root/.cpan/Bundle/
-ADD ./cpan/prefs/*					/root/.cpan/prefs/
+ADD ./cpan/Bundle/* 			/root/.cpan/Bundle/
+ADD ./cpan/prefs/*			/root/.cpan/prefs/
 ADD ./cpan/sources/authors/id/* 	/root/.cpan/sources/authors/id/
 ENV PERL_MM_USE_DEFAULT=1
 RUN /usr/local/bin/cpan -i Bundle::GetInfo

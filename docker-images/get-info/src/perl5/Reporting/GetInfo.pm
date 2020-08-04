@@ -3,6 +3,7 @@ package Reporting::GetInfo;
 
 use strict;
 use POSIX;
+use v5.32;
 
 use LWP::UserAgent;
 

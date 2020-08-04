@@ -1,0 +1,7 @@
+{
+	"base_stream": "perl_cpan",
+	"versions": {
+		"devel": "latest",
+		"a0.0.1": "5.32-20200803"
+	}
+}

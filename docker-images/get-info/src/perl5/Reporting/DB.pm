@@ -1,28 +1,65 @@
 
-# Pre: Assumes that db calls die upon failure
-
 package Reporting::DB;
 
 use strict;
+use POSIX;
+use v5.32;
 
 use Data::Dumper;
 use DBI;
-use vars qw/ @ISA /;
 
-@ISA = qw/ DBI /;
+use Reporting::DB::Address;
+use Reporting::DB::MOCProject;
+use Reporting::DB::POC;
+use Reporting::DB::Project;
+use Reporting::DB::Roles;
+
+
 my $DEBUG = $ENV{DEBUG};
 
 
-package Reporting::DB::db;
-use vars qw/ @ISA /;
-@ISA = qw/ DBI::db /;
+sub connect 
+{
+    print("DB::connect\n") if $DEBUG;
+
+    my ($cls, $params) = @_;
+
+    die "Missing dbname for DB\n"       unless $params->{db_name};
+    die "Missing host for DB\n"         unless $params->{host};
+    die "Missing user for DB\n"         unless $params->{user};
+    die "Missing password for user\n"   unless $params->{pass};
+    $params->{port} = 5432              unless $params->{port};
+    $params->{ssl}  = "prefer"          unless $params->{ssl};
+    my $conn = DBI->connect("dbi:Pg:host=$params->{host} port=$params->{port} sslmode=$params->{ssl} dbname=$params->{db_name}",
+                            $params->{user}, 
+                            $params->{pass},
+                            {
+                                RaiseError => 1 # Force db calls to die upon failure
+                            })
+             or die $DBI::errstr;
+
+    return bless {
+        address     => Reporting::DB::Address->new($conn),
+        moc_project => Reporting::DB::MOCProject->new($conn),
+        poc         => Reporting::DB::POC->new($conn),
+        project     => Reporting::DB::POC->new($conn),
+        role        => Reporting::DB::Role->new($conn),
+        _conn => $conn
+    }, $cls;
+}
+
+sub prepare
+{
+    my $self = shift;
+    return $self->{_conn}->prepare(@_);
+}
 
 sub get_timestamp
 {
     print("DB::db::get_timestamp\n") if $DEBUG;
     my ($self) = @_;
 
-    my $stmt = $self->SUPER::prepare("select now()");
+    my $stmt = $self->{_conn}->prepare("select now()");
     $stmt->execute();
     return $stmt->fetchrow_arrayref()->[0];    
 }
@@ -34,13 +71,13 @@ sub get_service_id
 
     return undef unless length($name) > 0;
 
-    my $smt = $self->SUPER::prepare("select service_id from service where service_name=?");
+    my $smt = $self->{_conn}->prepare("select service_id from service where service_name=?");
     $smt->execute($name);
     # die $smt->errstr . "\n" if length($smt->errstr) > 0;
 
     if ($smt->rows == 0)
     {
-        my $ins = $self->SUPER::prepare("insert into service (service_name) values (?)");
+        my $ins = $self->{_conn}->prepare("insert into service (service_name) values (?)");
         $ins->execute($name);
         # die $ins->errstr . "\n" if length($ins->errstr) > 0;
 
@@ -49,83 +86,6 @@ sub get_service_id
     }
     return $smt->fetchrow_arrayref()->[0];
 }
-
-sub get_poc_id
-{
-    print("DB::db::get_poc_id\n") if $DEBUG;
-    my $self=shift;     # req
-    my $uid=shift;      # required
-    my $name=shift;     # opt - required to add a user
-    my $email=shift;    # opt - required to add a user
-
-    my $poc_id=undef;
-    my $get_poc_sth = $self->SUPER::prepare("select poc_id from poc where user_uid=?");
-    $get_poc_sth->execute($uid);
-    if($get_poc_sth->rows==0 and length($uid)>0 and length($name)>0)
-        {
-        my $ins=$self->SUPER::prepare("insert into poc (user_uid, username, email) values (?,?,?)");
-        $ins->execute($uid,$name,$email);
-        # die $ins->errstr . "\n" if(length($ins->errstr)>0);
-        $get_poc_sth->execute($uid);
-        }
-    $poc_id=$get_poc_sth->fetchrow_arrayref()->[0];
-    return $poc_id;
-    }
-
-sub get_moc_project_id
-{
-    print("DB::db::get_moc_project_id\n") if $DEBUG;
-    my $self = shift;
-    my $name = shift;
-
-    return undef unless length($name) > 0;
-
-    my $moc_project_id;
-    my $sth = $self->SUPER::prepare("select moc_project_id from moc_project where project_name=?");
-    $sth->execute($name);
-    # die $sth->errstr."\n" if length($sth->errstr) > 0;
-    if($sth->rows == 0) {
-        my $ins = $self->SUPER::prepare("insert into moc_project (project_name) values (?)");
-        $ins->execute($name);
-        # die $ins->errstr."\n" if length($sth->errstr) > 0;
-
-        $sth->execute($name);
-        # die $sth->errstr."\n" if length($sth->errstr) > 0;
-    }
-    $moc_project_id = $sth->fetchrow_arrayref()->[0];
-    return $moc_project_id
-}
-
-sub get_project_id
-{
-    print("DB::db::get_project_id\n") if $DEBUG;
-    my $self=shift;
-    my $uuid=shift;
-    my $name=shift;
-    my $service_id=shift;
-
-    print(" $service_id->$uuid ($name)\n") if $DEBUG;
-    return undef unless length($uuid) > 0;
-
-    my $sth=$self->SUPER::prepare("select project_id from project where project_uuid=?");
-    $sth->execute($uuid);
-    if($sth->rows==0)
-    {
-        print("WARN: not creating project; no name\n") if length($name) == 0;
-        print("WARN: not creating project '$name'; missing service") if length($service_id) == 0;
-        return undef unless length($name) > 0 and length($service_id) > 0;
-
-        my $moc_project_id = $self->get_moc_project_id($name);
-        my $ins = $self->SUPER::prepare("insert into project (project_uuid, moc_project_id, service_id) values (?,?,?)");
-        $ins->execute($uuid, $moc_project_id, $service_id);
-        # die $sth->errstr."\n" if(length($sth->errstr)>0);
-
-        $sth->execute($uuid);
-        # die $sth->errstr."\n" if(length($sth->errstr)>0);
-    }
-    return $sth->fetchrow_arrayref()->[0];
-}
-
 sub get_item_id
     {
     print("DB::db::get_item_id\n") if $DEBUG;
@@ -141,12 +101,12 @@ sub get_item_id
     if(defined $item_type_id )
         {
         # print "select item_id from item where domain_id=$region_id and project_id=$project_id and item_type_id=$item_type_id and item_uid=$item_uid \n";
-        $get_item_id_sth=$self->SUPER::prepare("select item_id from item where project_id=? and item_type_id=? and item_uid=?");
+        $get_item_id_sth=$self->{_conn}->prepare("select item_id from item where project_id=? and item_type_id=? and item_uid=?");
         $get_item_id_sth->execute($project_id,$item_type_id,$item_uid);
         if($get_item_id_sth->rows==0)
             {
             # print "insert into item (domain_id,project_id,item_type_id,item_uid,item_name) values ($region_id,$project_id,$item_type_id,$item_uid,$item_name) \n";
-            my $ins=$self->SUPER::prepare("insert into item (project_id,item_type_id,item_uid,item_name) values (?,?,?,?,?)");
+            my $ins=$self->{_conn}->prepare("insert into item (project_id,item_type_id,item_uid,item_name) values (?,?,?,?,?)");
             if(!defined($item_name)) { $item_name=''; }
             $ins->execute($project_id,$item_type_id,$item_uid,$item_name);
             }
@@ -155,7 +115,7 @@ sub get_item_id
     else
         {
         # print "select item_id from item where domain_id=$region_id and project_id=$project_id and item_uid=$item_uid \n";
-        $get_item_id_sth=$self->SUPER::prepare("select item_id from item where project_id=? and item_uid=?");
+        $get_item_id_sth=$self->{_conn}->prepare("select item_id from item where project_id=? and item_uid=?");
         $get_item_id_sth->execute($project_id,$item_uid);
         }
 
@@ -174,13 +134,13 @@ sub get_item_type_id
     print("DB::db::get_item_type_id\n") if $DEBUG;
     my ($self, $item) = @_;
 
-    my $get_item_type_id_sth=$self->SUPER::prepare("select item_type_id from item_type where item_definition=?");
+    my $get_item_type_id_sth=$self->{_conn}->prepare("select item_type_id from item_type where item_definition=?");
     $get_item_type_id_sth->execute($item);
     if($get_item_type_id_sth->rows==0)
     {
         # Note: These should probably be statically prepared in the same way as roles ~TS
 
-        # my $ins=$self->SUPER::prepare("insert into item_type (item_definition,item_desc) values (?,null)");
+        # my $ins=$self->{_conn}->prepare("insert into item_type (item_definition,item_desc) values (?,null)");
         # $ins->execute($item);
         # $get_item_type_id_sth->execute($item);
         die;
@@ -208,11 +168,11 @@ sub get_item_ts_id
     my $get_item_ts_id_sth;
     if(defined($item_type_id))
         {
-        $get_item_ts_id_sth=$self->SUPER::prepare("select * from item_ts where project_id=? and item_type_id=? and item_id=? and start_ts=?");
+        $get_item_ts_id_sth=$self->{_conn}->prepare("select * from item_ts where project_id=? and item_type_id=? and item_id=? and start_ts=?");
         $get_item_ts_id_sth->execute($project_id,$item_type_id,$item_id,$start_ts);
         if( $get_item_ts_id_sth->rows==0 )
             {
-            my $ins=$self->SUPER::prepare("insert into item_ts (project_id,item_type_id,item_id,start_ts,end_ts,state,item_size) values (?,?,?,?,?,?,?,?)");
+            my $ins=$self->{_conn}->prepare("insert into item_ts (project_id,item_type_id,item_id,start_ts,end_ts,state,item_size) values (?,?,?,?,?,?,?,?)");
             $ins->execute($project_id,$item_type_id,$item_id,$start_ts,$end_ts,$state,$size);
             }
         }
@@ -220,15 +180,11 @@ sub get_item_ts_id
         {
         # this will be a gocha - but in this case we don't have the information to perform the insert (we don't know the item_type)
         # However, in the mapping of items to items at a given timestam, we need to look up both records in the item_ts table.
-        $get_item_ts_id_sth=$self->SUPER::prepare("select * from item_ts where project_id=? and item_id=? and start_ts=?");
+        $get_item_ts_id_sth=$self->{_conn}->prepare("select * from item_ts where project_id=? and item_id=? and start_ts=?");
         $get_item_ts_id_sth->execute($project_id,$item_id,$start_ts);
         }        
     return $item_ts;
 }
-
-package Reporting::DB::st;
-use vars qw/ @ISA /;
-@ISA = qw/ DBI::st /;
 
 # FROM: https://perldoc.perl.org/perlobj.html#AUTOLOAD
 # Used as a shim layer to dispatch DBI methods to the underlying object
