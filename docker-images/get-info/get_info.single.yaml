@@ -1,0 +1,90 @@
+---
+apiVersion: v1
+kind: Template
+metadata:
+  name: reporting_templates_get-info
+objects:
+  - apiVersion: v1
+    kind: Pod
+    metadata:
+      name: get-info-test
+    spec:
+      containers:
+        - name: get-info
+          image: >-
+            docker-registry.default.svc:5000/reporting-test/get-info:latest
+          env:
+            - name: CREDS_FILE
+              value: ${CONFIG_DIR}${CONFIG_FILE}
+            - name: PGHOST
+              value: ${POSTGRES_HOST}
+            - name: PGDATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: ${POSTGRES_SECRETS}
+                  key: ${POSTGRES_SECRETS_DBNAME_FIELD}
+            - name: PGUSER
+              valueFrom:
+                secretKeyRef:
+                  name: ${POSTGRES_SECRETS}
+                  key: ${POSTGRES_SECRETS_USER_FIELD}
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ${POSTGRES_SECRETS}
+                  key: ${POSTGRES_SECRETS_PASSWORD_FIELD}
+            - name: OSUSER
+              valueFrom:
+                secretKeyRef:
+                  name: ${OPENSHIFT_SECRETS}
+                  key: ${OPENSHIFT_SECRETS_USER_FIELD}
+            - name: OSPASS
+              valueFrom:
+                secretKeyRef:
+                  name: ${OPENSHIFT_SECRETS}
+                  key: ${OPENSHIFT_SECRETS_PASSWORD_FIELD}
+            - name: DEBUG
+              value: "1"
+          volumeMounts:
+            - name: config-volume
+              mountPath: ${CONFIG_DIR}
+      volumes:
+        - name: config-volume
+          configMap:
+            name: billing
+            items:
+              - key: config
+                path: ${CONFIG_FILE}
+      restartPolicy: OnFailure
+parameters:
+  - name: POSTGRES_HOST
+    description: "Hostname of the postgres instance to connect to"
+    from: "[A-Za-z0-9-]{1,63}"
+    generate: "expression"
+  - name: POSTGRES_SECRETS
+    description: "Name of the secrets object containing postgres secrets"
+    value: "postgresql"
+  - name: POSTGRES_SECRETS_DBNAME_FIELD
+    description: "Field in the postgres secrets object to get the database name"
+    value: "database-name"
+  - name: POSTGRES_SECRETS_USER_FIELD
+    description: "Field in the postgres secrets object to get the username"
+    value: "database-user"
+  - name: POSTGRES_SECRETS_PASSWORD_FIELD
+    description: "Field in the postgres secrets object to get the password"
+    value: "database-password"
+  - name: OPENSHIFT_SECRETS
+    description: "Name of the secrets objects containing Openshift secrets"
+    value: "creds-kaizen"
+  - name: OPENSHIFT_SECRETS_USER_FIELD
+    description: "Field in the openshift secrets object to get the username"
+    value: "username"
+  - name: OPENSHIFT_SECRETS_PASSWORD_FIELD
+    description: "Field in the openshift secrets object to get the password"
+    value: "password"
+  - name: CONFIG_DIR
+    description: "Path inside container for config object(s) to be placed"
+    value: "/etc/billing/"
+  - name: CONFIG_FILE
+    description: ""
+    value: "creds.json"

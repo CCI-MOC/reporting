@@ -1,9 +1,0 @@
-{
-  "services": [ ],
-  "database": {
-    "host":    "localhost",
-    "db_name": "reporting_testing",
-    "user":    "get_info",
-    "pass":    "123456"
-  }
-}

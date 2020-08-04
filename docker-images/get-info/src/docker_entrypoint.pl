@@ -1,7 +1,9 @@
 
-use File::Basename;
-use lib dirname($0) . "/app";
-require 'get_info.pl';
+use strict;
 
-my $ec = main();
-exit $ec;
+use File::Basename;
+use lib dirname($0) . "/perl5";
+
+use Reporting::GetInfo;
+
+exit Reporting::GetInfo::main();

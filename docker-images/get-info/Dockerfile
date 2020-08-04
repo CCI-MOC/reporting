@@ -1,18 +1,16 @@
 
-# init-db
-FROM perl:5.28
+# get-info
+FROM perl_cpan:5.28-latest
+
+# Install Dependencies
+ADD ./cpan/Bundle/* 				/root/.cpan/Bundle/
+ADD ./cpan/prefs/*					/root/.cpan/prefs/
+ADD ./cpan/sources/authors/id/* 	/root/.cpan/sources/authors/id/
+ENV PERL_MM_USE_DEFAULT=1
+RUN /usr/local/bin/cpan -i Bundle::GetInfo
+
+# Install Code
 ADD ./src /code
 WORKDIR /code
-
-ENV PERL_MM_USE_DEFAULT=1
-RUN  true \
-    # Bring CPAN up-to-date
-  && /usr/local/bin/cpan -j /code/cpan/Config.pm -u \
-    # Enable Distroprefs w/ YAML
-  && /usr/local/bin/cpan -j /code/cpan/Config.pm -i YAML \
-    # Install
-  && /usr/local/bin/cpan -j /code/cpan/Config.pm -i Bundle::GetInfo
-
-# Entry
 CMD ["/usr/bin/env", "perl", "docker_entrypoint.pl"]
 HEALTHCHECK NONE

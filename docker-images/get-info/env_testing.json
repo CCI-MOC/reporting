@@ -1,0 +1,18 @@
+{
+  "database": {
+    "host":    "postgres",
+    "db_name": "reporting",
+    "user":    "get_info",
+    "pass":    "123456"
+  },
+  "services": [
+    {
+      "type":   "OpenStack",
+      "id":     "devstack",
+      "url":    "http://openstack/identity",
+      "user":   "admin",
+      "domain": "default",
+      "pass":   "testing_password"
+    }
+  ]
+}
