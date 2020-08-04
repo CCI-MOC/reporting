@@ -11,3 +11,4 @@ CREATE TABLE address (
                 country VARCHAR(100),
                 CONSTRAINT address_pk PRIMARY KEY (address_id)
 );
+CREATE SEQUENCE address_address_id_seq OWNED BY address.address_id;
