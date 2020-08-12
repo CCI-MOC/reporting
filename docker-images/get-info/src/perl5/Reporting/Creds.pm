@@ -1,10 +1,15 @@
 
 package Reporting::Creds;
 
-use JSON;
 use strict;
+use POSIX;
+use v5.32;
 
-my $DEBUG = 0;
+use JSON;
+
+
+# my $DEBUG = 0;
+
 
 sub load_env_refs
 {
@@ -12,18 +17,18 @@ sub load_env_refs
 
     if (ref $e eq 'ARRAY') 
     {
-        if ($DEBUG) 
-        {
-            print Dumper{@$e};
-        }
+        # if ($DEBUG) 
+        # {
+        #     print Dumper{@$e};
+        # }
         $e = [ map { load_env_refs($_) } @$e ];
     }
     elsif (ref $e eq 'HASH') 
     {
-        if ($DEBUG)
-        {
-            print Dumper{%$e};
-        }
+        # if ($DEBUG)
+        # {
+        #     print Dumper{%$e};
+        # }
 
         if (defined $e->{fromEnv})
         {

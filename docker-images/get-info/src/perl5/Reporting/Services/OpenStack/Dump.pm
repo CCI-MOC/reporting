@@ -27,11 +27,14 @@ sub store_users
             service_ids => { $service_id => $os_uuid },
             email => $u->{email},
         );
-        $poc_id = $db->{poc}->create(
-            service_ids => { $service_id => $os_uuid }, 
-            email => $u->{email},
-            username => $u->{name}
-        ) unless ($poc_id);
+        unless ($poc_id)
+        {
+            $poc_id = $db->{poc}->create(
+                service_ids => { $service_id => $os_uuid }, 
+                email => $u->{email},
+                username => $u->{name}
+            );
+        }
         die "Err: Unable to add user ID#: $os_uuid ($store->{users}->{$u}->{name} <$store->{users}->{$u}->{email}>)\n" unless $poc_id;
 
         $store->{uuid2poc} = {} unless ref $store->{uuid2poc};
@@ -47,14 +50,13 @@ sub store_projects
     my $get_item_id_sth = $db->prepare("select item_id from item where project_id=? and item_type_id=? and item_uid=?");
 	while ( my ($uuid, $project) = (each %{$store->{projects}}))
     {
-        my $project_id = $db->{project}->lookup(uuid => $uuid);
+        my $project_id = $db->{project}->lookup(project_uuid => $uuid);
         $project_id = $db->{project}->create(
-                uuid            => $uuid,
+                project_uuid    => $uuid,
                 service_id      => $service_id,
                 project_name    => $project->{name}, 
         ) unless $project_id;
 
-        print "-- $project_id\n" if $DEBUG;
         foreach my $v (keys %{$project->{'Vol'}})
         {
             print "    item(Vol): $v\n";
@@ -147,10 +149,10 @@ sub store_floating_ips
 
     while ( my ($fip_id, $fip) = (each %{$store->{floating_ips}}) )
     {
-        my $project_id = $db->get_project_id($fip->{project_uuid});
+        my $project_id = $db->{project}->lookup(uuid => $fip->{project_uuid});
         die "Could not load project info for '$fip->{project_uuid}'\n" unless $project_id;
-        my $fip_id = $db->get_floating_ip_id($fip_id, $project_id, $fip->{floating_ip_address}, $fip->{fixed_ip_address});
-        die "Could not load floating_ip for ''\n" unless $fip_id;
+        my $fip_id = $db->get_floating_ip_id($project_id, $fip->{floating_ip_address}, $fip_id);
+        die "Could not load floating_ip for '$fip->{floating_ip_address}'\n" unless $fip_id;
     }
 }
 
@@ -184,7 +186,7 @@ sub dump_to_db
 	my ($os_info, $db, $service_id, $timestamp) = @_;
     #my $get_poc_sth=$db->prepare("select poc_id from poc where domain_id=? and user_uid=?");
 
-    print("${debug_prefix}timestamp = $timestamp\n");
+    print("${debug_prefix}timestamp = ${timestamp}\n");
 
     store_users($os_info, $db, $service_id, $timestamp);
     store_projects($os_info, $db, $service_id, $timestamp);

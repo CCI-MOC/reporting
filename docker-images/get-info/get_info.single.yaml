@@ -12,7 +12,7 @@ objects:
       containers:
         - name: get-info
           image: >-
-            docker-registry.default.svc:5000/reporting-test/get-info:latest
+            docker-registry.default.svc:5000/reporting-test/get_info:latest
           env:
             - name: CREDS_FILE
               value: ${CONFIG_DIR}${CONFIG_FILE}
@@ -55,7 +55,7 @@ objects:
             items:
               - key: config
                 path: ${CONFIG_FILE}
-      restartPolicy: OnFailure
+      restartPolicy: Never
 parameters:
   - name: POSTGRES_HOST
     description: "Hostname of the postgres instance to connect to"
@@ -86,5 +86,5 @@ parameters:
     description: "Path inside container for config object(s) to be placed"
     value: "/etc/billing/"
   - name: CONFIG_FILE
-    description: ""
+    description: "Path inside container for config object to be placed"
     value: "creds.json"

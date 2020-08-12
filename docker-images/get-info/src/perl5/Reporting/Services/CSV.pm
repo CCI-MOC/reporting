@@ -1,5 +1,14 @@
 
 package Reporting::Services::CSV;
+=head3 Services::CSV
+
+TBD (To be Documented)
+
+=over
+=cut
+# Note: This module is an import routine. While useful, I don't think that it's
+#       a part of GetInfo ~TS
+# TODO: Should deprecate? 
 
 sub get_metrics_data
 {
@@ -88,3 +97,6 @@ sub get_mq_data
     }
     return $proj;
 }
+
+1;
+__END__
