@@ -1,8 +1,16 @@
     
 package Reporting::Services::OpenStack;
 
+=head3 Services::OpenStack
+
+TBD (To Be Documented)
+
+=over
+=cut
+
 use strict;
 use POSIX;
+use v5.30;
 
 use Data::Dumper;
 use Date::Parse;
@@ -13,7 +21,6 @@ use YAML::XS;
 
 use Reporting::Services::OpenStack::Catalog;
 use Reporting::Services::OpenStack::Cinder;
-use Reporting::Services::OpenStack::Dump qw/ dump_to_db /;
 use Reporting::Services::OpenStack::Keystone;
 use Reporting::Services::OpenStack::Neutron;
 use Reporting::Services::OpenStack::Nova;
@@ -140,8 +147,6 @@ sub store
 {
     my ($self, $db) = @_;
 
-    my $timestamp   = $db->get_timestamp();
-    my $service_id  = $db->get_service_id($self->{id});
     my @steps = (
         # [ "Get OpenStack Projects",     sub { return $self->{keystone}->    load_os_projects(@_) } ],
         [ "Load Project Info",          sub { return $self->{keystone}->get_all_projects(@_) } ],
@@ -162,7 +167,7 @@ sub store
         my ($text, $step) = @$tupl;
         if ($text)
         {
-            print "$i ---> $text\n";
+            print("$i ---> $text\n");
             $i++;
         }
         ### TD B: Haveeach step write directly to the database
@@ -173,7 +178,9 @@ sub store
     }
 
     ### TD C: Commit Transaction (Possibly in GetInfo Driver?)
-    dump_to_db($self, $db, $service_id, $timestamp);
+    my $service_id = $db->get_service_id($self->{id});
+    # dump_to_db($self, $db, $service_id, $timestamp);
+    $db->dump($self, $service_id);
     return undef;
 }
 
