@@ -30,6 +30,10 @@ Parse::CSV 2.05
 
 JSON 4.02
 
+JSON::RPC2 2.1.2
+
+JSON::RPC2::Client 2.1.2
+
 Date::Parse 2.33
 
 DBI 1.643

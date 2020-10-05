@@ -43,15 +43,27 @@ objects:
                 secretKeyRef:
                   name: ${OPENSHIFT_SECRETS}
                   key: ${OPENSHIFT_SECRETS_PASSWORD_FIELD}
+            - name: ZBXUSER
+              valueFrom:
+                secretKeyRef:
+                  name: ${ZABBIX_SECRETS}
+                  key: ${ZABBIX_SECRETS_USER_FIELD}
+            - name: ZBXPASS
+              valueFrom:
+                secretKeyRef:
+                  name: ${ZABBIX_SECRETS}
+                  key: ${ZABBIX_SECRETS_PASSWORD_FIELD}
             - name: DEBUG
               value: "1"
           volumeMounts:
-            - name: config-volume
+            - name: billing-config
+              readOnly: true
               mountPath: ${CONFIG_DIR}
       volumes:
-        - name: config-volume
+        - name: billing-config
           configMap:
             name: billing
+            optional: false
             items:
               - key: config
                 path: ${CONFIG_FILE}
@@ -81,6 +93,15 @@ parameters:
     value: "username"
   - name: OPENSHIFT_SECRETS_PASSWORD_FIELD
     description: "Field in the openshift secrets object to get the password"
+    value: "password"
+  - name: ZABBIX_SECRETS
+    description: "Name of the secrets objects containing Zabbix secrets"
+    value: "creds-zabbix"
+  - name: ZABBIX_SECRETS_USER_FIELD
+    description: "Field in the Zabbix secrets object to get the username"
+    value: "username"
+  - name: ZABBIX_SECRETS_PASSWORD_FIELD
+    description: "Field in the Zabbix secrets object to get the password"
     value: "password"
   - name: CONFIG_DIR
     description: "Path inside container for config object(s) to be placed"

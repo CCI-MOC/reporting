@@ -15,6 +15,7 @@ use Data::Dumper;
 use DBI;
 
 use Reporting::DB::Address;
+use Reporting::DB::Dump;
 use Reporting::DB::MOCProject;
 use Reporting::DB::POC;
 use Reporting::DB::Project;
@@ -49,7 +50,7 @@ following fields:
 =cut
 sub connect 
 {
-    print("DB::connect\n") if $DEBUG;
+    print("DB::connect\n") if $DEBUG > 1;
 
     my ($cls, $params) = @_;
 
@@ -68,8 +69,10 @@ sub connect
                             })
              or die $DBI::errstr;
     my $self = bless {
-        _conn => $conn
+        _conn => $conn,
     }, $cls;
+
+    $self->{timestamp}   = $self->_get_timestamp();
 
     $self->{address}     = Reporting::DB::Address->new($conn);
     $self->{moc_project} = Reporting::DB::MOCProject->new($conn);
@@ -91,14 +94,14 @@ sub prepare
     return $self->{_conn}->prepare(@_);
 }
 
-=item \$DB->get_timestamp()
+=item \$DB->_get_timestamp()
 
 Returns a string with the current time as known by the database
 
 =cut
-sub get_timestamp
+sub _get_timestamp
 {
-    print("DB::db::get_timestamp\n") if $DEBUG;
+    print("DB::db::_get_timestamp\n") if $DEBUG;
     my ($self) = @_;
 
     my $stmt = $self->{_conn}->prepare("select now()");
