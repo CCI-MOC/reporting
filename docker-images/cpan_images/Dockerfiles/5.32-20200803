@@ -1,0 +1,13 @@
+
+ENV CPAN_DIR=/root/.cpan
+ENV PERL_MM_USE_DEFAULT=1
+ENV PERL_VERSION=5.32
+ENV SNAPSHOT_DATE=2020_08_03
+
+FROM perl:$PERL_VERSION
+
+RUN [ ! -d "${CPAN_DIR}/Bundle" ] && mkdir -p "${CPAN_DIR}/Bundle"
+
+ADD Snapshot_${SNAPSHOT_DATE}_00.pm "$(CPAND_DIR}/Bundle/"
+RUN /usr/local/bin/cpan Bundle::Snapshot_${SNAPSHOT_DATE}_00
+

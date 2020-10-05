@@ -1,0 +1,9 @@
+
+ARG PERL_VERSION=5.32
+ARG TIMESTAMP=2020_09_21
+
+FROM perl:${PERL_VERSION}
+ENV PERL_MM_USE_DEFAULT=1
+
+COPY Snapshot_${TIMESTAMP}.pm /root/.cpan/Bundle/
+RUN [ "/usr/local/bin/cpan", "Bundle::Snapshot_2020_09_21" ]
