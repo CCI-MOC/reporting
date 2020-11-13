@@ -1,0 +1,7 @@
+FROM perl:5.28
+
+RUN mkdir -p /root/.cpan/Bundle
+ADD Snapshot_2020_06_16_00.pm /root/.cpan/Bundle/
+
+ENV PERL_MM_USE_DEFAULT=1
+RUN /usr/local/bin/cpan Bundle::Snapshot_2020_06_16_00
