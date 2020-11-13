@@ -10,7 +10,7 @@ TBD (To Be Documented)
 
 use strict;
 use POSIX;
-use v5.30;
+use v5.32;
 
 use Data::Dumper;
 use Date::Parse;

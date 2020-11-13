@@ -13,6 +13,13 @@
       "user":   { "fromEnv": "OSUSER" },
       "domain": "default",
       "pass":   { "fromEnv": "OSPASS" }
+    },
+    {
+      "type":     "Zabbix",
+      "id":       "rz",
+      "url":      "https://rz.massopen.cloud/api_jsonrpc.php",
+      "user":     { "fromEnv": "ZBXUSER" },
+      "password": { "fromEnv": "ZBXPASS" },
     }
   ]
 }

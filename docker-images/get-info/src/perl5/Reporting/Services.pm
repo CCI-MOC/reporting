@@ -2,42 +2,50 @@
 package Reporting::Services;
 
 use strict;
+use POSIX;
+use v5.32;
+
 use Data::Dumper;
 
 use Reporting::Services::OpenStack;
+use Reporting::Services::Zabbix;
 
 
 my $DEBUG = 0;
 
-
-sub create {
+sub _dispatch {
     my ( $service, $ua ) = @_;
 
     return ( undef, "ERROR: Service Item should be object:\n$service\n" )
         if ( not( ref $service eq 'HASH' ) );
-    print Dumper{%$service} if ($DEBUG);
 
+    my ($obj, $err);
     # TODO: Dynamic loading over modules in Reporting::Services
     if ( $service->{type} eq 'OpenStack' ) {
-        return Reporting::Services::OpenStack->new( $service, $ua );
+        ($obj, $err) = Reporting::Services::OpenStack->new( $service, $ua );
     }
     elsif ( $service->{type} eq 'OpenShift' ) {
-        return ( undef,
-            "Warning: Not Implemented: \$service{type} == OpenShift\n" );
-
+        ($obj, $err) = ( undef, "Not Implemented");
         #get_openshift_info(..., $service);
     }
     elsif ( $service->{type} eq 'Zabbix' ) {
-        return ( undef,
-            "Warning: Not Implemented: \$service{type} == Zabbix\n" );
-
-        #get_zabbix_info(..., $service);
+        ($obj, $err) = Reporting::Services::Zabbix->new( $service, $ua );
     }
     else {
-        return ( undef,
-            "ERROR: Unknown Service Type '$service->{type}' in:\n$service\n"
-        );
+        ($obj, $err) = ( undef, "Unknown Service Type. In:\n$service");
     }
+    $err = "$service->{type} ($service->{id}): $err" if $err and $service->{type};
+    return ($obj, $err);
+}
+
+sub create {
+    my ( $service, $ua ) = @_;
+    
+    print Dumper{%$service} if ($DEBUG);
+
+    my ( $obj, $err ) = _dispatch( $service, $ua );
+    return ( undef, "Reporting::Services: $err" ) if $err;
+    return ( $obj, undef );
 }
 
 1;

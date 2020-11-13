@@ -48,7 +48,7 @@ objects:
                     docker-registry.default.svc:5000/reporting-test/get_info:latest
                   env:
                     - name: CREDS_FILE
-                      value: ${CONFIG_PATH}
+                      value: ${CONFIG_DIR}${CONFIG_FILE}
                     - name: PGHOST
                       value: ${POSTGRES_HOST}
                     - name: PGDATABASE
@@ -76,13 +76,28 @@ objects:
                         secretKeyRef:
                           name: ${OPENSHIFT_SECRETS}
                           key: ${OPENSHIFT_SECRETS_PASSWORD_FIELD}
+                    - name: ZBXUSER
+                      valueFrom:
+                        secretKeyRef:
+                          name: ${ZABBIX_SECRETS}
+                          key: ${ZABBIX_SECRETS_USER_FIELD}
+                    - name: ZBXPASS
+                      valueFrom:
+                        secretKeyRef:
+                          name: ${ZABBIX_SECRETS}
+                          key: ${ZABBIX_SECRETS_PASSWORD_FIELD}
+                  volumeMounts:
+                    - name: billing-config
+                      readOnly: true
+                      mountPath: ${CONFIG_DIR}
               volumes:
                 - name: billing-config
                   configMap:
                     name: billing
+                    optional: false
                     items:
                       - key: config
-                        path: ${CONFIG_PATH}
+                        path: ${CONFIG_FILE}
               restartPolicy: Never
 parameters:
   - name: POSTGRES_HOST
@@ -110,6 +125,18 @@ parameters:
   - name: OPENSHIFT_SECRETS_PASSWORD_FIELD
     description: "Field in the openshift secrets object to get the password"
     value: "password"
-  - name: CONFIG_PATH
+  - name: ZABBIX_SECRETS
+    description: "Name of the secrets objects containing Openshift secrets"
+    value: "creds-zabbix"
+  - name: ZABBIX_SECRETS_USER_FIELD
+    description: "Field in the zabbix secrets object to get the username"
+    value: "username"
+  - name: ZABBIX_SECRETS_PASSWORD_FIELD
+    description: "Field in the zabbix secrets object to get the password"
+    value: "password"
+  - name: CONFIG_DIR
+    description: "Path inside container for config object(s) to be placed"
+    value: "/etc/billing/"
+  - name: CONFIG_FILE
     description: "Path inside container for config object to be placed"
     value: "creds.json"
