@@ -277,6 +277,7 @@ sub get_all_users
 
     foreach my $user (@{$json_fields->{users}})
     {
+        # TODO: Check if 'name' is an email address and rewrite fields
         $user->{id}     = "" unless $user->{id};
         $user->{name}   = "" unless $user->{name};
         $user->{email}  = "" unless $user->{email};
@@ -301,6 +302,7 @@ sub get_all_users
 
         #for each user get the list of projects
         $self->get_user2project($store, $user->{id});
+        return undef;
     }
     return undef;
 }

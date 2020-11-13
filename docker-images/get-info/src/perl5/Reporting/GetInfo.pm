@@ -40,7 +40,7 @@ sub main
     #       - Load State from Database
     #           - Initialize proper objects based on loaded state
     #       - Load State in Underlying Services
-    #           - RAII: when hitting an unseen object, auto create db entry/s
+    #           - 'RAII': when hitting an unseen object, auto create db entry/s
     #       - Mark Objects that have disappeared
 
     # Note: Algorithm of the above ~TS
@@ -67,7 +67,8 @@ sub main
 
     my $ua = LWP::UserAgent->new(
             #protocols_allowed   => [ 'http', 'https' ],
-            timeout             => 15
+            keep_alive  => 1,
+            timeout     => 15
         );
 
     my @loaded_services;
@@ -89,3 +90,52 @@ sub main
 
 1;
 __END__;
+
+
+=head1 MOC Reporting
+=head2 GetInfo.pm
+
+Get Info is the component of the Reporting stack that collects data from
+underlying infrastructure and stores it into a postgres database. Both the 
+services from which data needs to be collected and the datbase into which that
+data is being stored are configured via a json file. GetInfo.pm recieves the
+location of the json file via the environment variable ${CREDS_FILE}.
+Alternatively, the text can be passed directly using the environment variable
+${CREDS_TEXT}. The expected format of the json file is as follows:
+
+=begin json
+
+{
+    "database": [
+        "mandatory", 
+        "Configuration block for the underlying database",
+        {
+            "host":     [ "mandatory", "Hostname of the machine with the database", "hostname" ],
+            "db_name":  [ "mandatory", "Name of the database in postgresql", "database" ],
+            "user":     [ "mandatory", "Usernaem to authenticate to the database", "username" ],
+            "pass":     [ "mandatory", "User password for the database", "password" ],
+            "port":     [ "optional", "Port Postgresql is listening on", 5432 ],
+            "ssl":      [ 
+                "optional", 
+                "SSL Configuration. See DBI::Pg for more info", 
+                { "enum": [ "disable", "allow", "prefer", "require" ] } 
+            ]
+        }
+    ], 
+    "services": [
+        "mandatory",
+        "List of services to collect data from",
+        [
+            {
+                "_": "See Reporting::Services.pm for specification"
+            },
+            ...
+        ]
+    ]
+}
+
+=end json
+
+Example configuration files are provided in Reporting/docker-images/get-info.
+
+=cut

@@ -1,5 +1,11 @@
 
 package Reporting::DB;
+=head2 Reporting::DB
+
+Layer for managing Database requests from the driver program (GetInfo.pm, etc)
+
+=over
+=cut
 
 use strict;
 use POSIX;
@@ -12,12 +18,35 @@ use Reporting::DB::Address;
 use Reporting::DB::MOCProject;
 use Reporting::DB::POC;
 use Reporting::DB::Project;
-use Reporting::DB::Roles;
+use Reporting::DB::Role;
 
+=item $Reporting::DB::DEBUG
 
+Enables debugging for the module when truthy. Looks at the $DEBUG environment 
+variable.
+
+=cut
 my $DEBUG = $ENV{DEBUG};
 
+=item Reporting::DB->connect(\%params)
 
+Opens a connection using the database configuration provided in \%params and
+builds the queries used to access the datbase. Returns an obect with the 
+following fields:
+
+=begin perl
+
+{
+    address     => \$Reporting::DB::Address,
+    moc_prject  => \$Reporting::DB::MOCProject,
+    poc         => \$Reporting::DB::POC,
+    project     => \$Reporting::DB::Project,
+    role        => \$Reporting::DB::Role,
+}
+
+=end perl
+
+=cut
 sub connect 
 {
     print("DB::connect\n") if $DEBUG;
@@ -30,6 +59,7 @@ sub connect
     die "Missing password for user\n"   unless $params->{pass};
     $params->{port} = 5432              unless $params->{port};
     $params->{ssl}  = "prefer"          unless $params->{ssl};
+
     my $conn = DBI->connect("dbi:Pg:host=$params->{host} port=$params->{port} sslmode=$params->{ssl} dbname=$params->{db_name}",
                             $params->{user}, 
                             $params->{pass},
@@ -37,23 +67,35 @@ sub connect
                                 RaiseError => 1 # Force db calls to die upon failure
                             })
              or die $DBI::errstr;
-
-    return bless {
-        address     => Reporting::DB::Address->new($conn),
-        moc_project => Reporting::DB::MOCProject->new($conn),
-        poc         => Reporting::DB::POC->new($conn),
-        project     => Reporting::DB::POC->new($conn),
-        role        => Reporting::DB::Role->new($conn),
+    my $self = bless {
         _conn => $conn
     }, $cls;
+
+    $self->{address}     = Reporting::DB::Address->new($conn);
+    $self->{moc_project} = Reporting::DB::MOCProject->new($conn);
+    $self->{poc}         = Reporting::DB::POC->new($conn, $self->{address});
+    $self->{project}     = Reporting::DB::Project->new($conn, $self->{moc_project});
+    $self->{role}        = Reporting::DB::Role->new($conn);
+
+    return $self;
 }
 
+=item \$DB->prepare(...)
+
+Alias to \$DBI::conn->prepare(...)
+
+=cut
 sub prepare
 {
     my $self = shift;
     return $self->{_conn}->prepare(@_);
 }
 
+=item \$DB->get_timestamp()
+
+Returns a string with the current time as known by the database
+
+=cut
 sub get_timestamp
 {
     print("DB::db::get_timestamp\n") if $DEBUG;
@@ -64,6 +106,13 @@ sub get_timestamp
     return $stmt->fetchrow_arrayref()->[0];    
 }
 
+=item \$DB->get_service_id( $name )
+
+Looks up the id for the given service name. If it is not present in the 
+database, a new entry is created and the id of the new entry is returned.
+
+=cut
+# TODO: Create DB::Service.pm and move to `lookup`
 sub get_service_id
 {
     print("DB::db::get_service_id\n") if $DEBUG;
@@ -86,6 +135,30 @@ sub get_service_id
     }
     return $smt->fetchrow_arrayref()->[0];
 }
+
+
+=item \DB->get_floating_ip_id(...) 
+
+TBD (To be documented)
+
+=cut
+sub get_floating_ip_id
+{
+    print("DB::get_item_id\n") if $DEBUG;
+    my ($self, $project_uuid, $name, $uuid) = @_;
+    
+    my $type_id = $self->get_item_type_id('floating_ip');
+    return $self->get_item_id($project_uuid, $uuid, $name, $type_id);
+}
+
+=item \DB->get_item_id(...) 
+
+TBD (To be documented)
+
+=cut
+# TODO: Document function behavior
+# Note: I inherited this funciton from Rob and have yet to reverse engineer it ~TS
+# TODO: Create DB::ItemId.pm and move to `lookup`
 sub get_item_id
     {
     print("DB::db::get_item_id\n") if $DEBUG;
@@ -106,7 +179,7 @@ sub get_item_id
         if($get_item_id_sth->rows==0)
             {
             # print "insert into item (domain_id,project_id,item_type_id,item_uid,item_name) values ($region_id,$project_id,$item_type_id,$item_uid,$item_name) \n";
-            my $ins=$self->{_conn}->prepare("insert into item (project_id,item_type_id,item_uid,item_name) values (?,?,?,?,?)");
+            my $ins=$self->{_conn}->prepare("insert into item (project_id,item_type_id,item_uid,item_name) values (?,?,?,?)");
             if(!defined($item_name)) { $item_name=''; }
             $ins->execute($project_id,$item_type_id,$item_uid,$item_name);
             }
@@ -118,10 +191,9 @@ sub get_item_id
         $get_item_id_sth=$self->{_conn}->prepare("select item_id from item where project_id=? and item_uid=?");
         $get_item_id_sth->execute($project_id,$item_uid);
         }
+    my $row_array_ref=$get_item_id_sth->fetchrow_arrayref();
 
     # die $get_item_id_sth->errstr . "\n" if(length($get_item_id_sth->errstr)>0);
-    my $row_array_ref=$get_item_id_sth->fetchrow_arrayref();
-    my $item_id=undef;
     if(defined($row_array_ref))
         {
         $item_id=$row_array_ref->[0];
@@ -129,6 +201,14 @@ sub get_item_id
     return $item_id;
     }
 
+=item \$DB->get_item_type_id(...)
+
+TBD (To be documented)
+
+=cut
+# TODO: Document function behavior
+# Note: I inherited this funciton from Rob and have yet to reverse engineer it ~TS
+# TODO: Create DB::ItemId.pm and move to `lookup`
 sub get_item_type_id
 {
     print("DB::db::get_item_type_id\n") if $DEBUG;
@@ -152,6 +232,14 @@ sub get_item_type_id
     return $item_type_id;
 }
 
+=item \$DB->get_item_ts_id(...)
+
+TBD (To be documented)
+
+=cut
+# TODO: Document function behavior
+# Note: I inherited this funciton from Rob and have yet to reverse engineer it ~TS
+# TODO: Create DB::ItemId.pm and move to `lookup`
 sub get_item_ts_id
     {
     print("DB::db::get_item_ts_id\n") if $DEBUG;
@@ -186,26 +274,24 @@ sub get_item_ts_id
     return $item_ts;
 }
 
-# FROM: https://perldoc.perl.org/perlobj.html#AUTOLOAD
-# Used as a shim layer to dispatch DBI methods to the underlying object
-# Should be removed once direct calls to DBI are no longer used by GetInfo & Co
-# Would have implemented as inheritance stack except DBI hides its internals
-# our $AUTOLOAD;
-# sub AUTOLOAD {
-#     my ($self) = @_;
-#     my $called = $AUTOLOAD =~ s/.*:://r;
+=item DB->disconnect()
 
-#     #print(Dumper{$self->{conn}->$called});
-#     return $self->{conn}->$called->(@_) ; # if $self->{conn}->$called;
-#     #die "No method \"$called\" in Reporting::DB or DBI";
-# }
+Removes the subdrivers and disconnects from the database
 
-# sub DESTROY { 
-#     local($., $@, $!, $^E, $?);
-#     my ($self,) = @_;
+=cut
+sub disconnect
+{
+    my $self = shift;
+    delete $self->{address};
+    delete $self->{moc_project};
+    delete $self->{poc};
+    delete $self->{project};
+    delete $self->{role};
+    $self->{_conn}->disconnect();
+}
 
-#     $self->{conn}->disconnect() if $self->{conn};
-# }
+=back
+=cut
 
 1;
 __END__;

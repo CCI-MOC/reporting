@@ -73,7 +73,7 @@ sub identity_event
         state $warn_written = 0;
         unless ($warn_written)
         {
-            print "WARN: identity events skipped" ;
+            print "WARN: identity events skipped\n";
             $warn_written = 1;
         }
     }
