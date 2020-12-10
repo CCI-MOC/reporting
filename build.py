@@ -7,12 +7,28 @@
     [2] https://docker-py.readthedocs.io/en/stable/images.html
     [3] https://github.com/openshift/openshift-client-python
     [4] https://github.com/openshift/openshift-client-python/blob/main/examples/templates.py
+
+From the project root dir:
+`$ ./build.py --all --full`: Build, Publish, Deploy all
+`$ ./build.py --images get-info --full`: Build, Publish, Deploy only get-info
+`$ ./build.py --all --actions deploy`: Only deploy all (not recommended)
+
+One issue I need to point out: I was never able to get Publishing directly to the docker 
+instance w/i OpenShift working, and was bouncing off of docker hub as a result. You'll 
+need to recreate my setup which I did not get the opportunity to automate. In docker hub, 
+create 'imagestreams' for each of the images: `moc_reporting_testing-${%s/-/_/<imagename>}`, 
+(that is, change '-' to '_' in <imagename>) and change the default repo (second argument 
+of `os.env` in assignment to `DOCKER_REPO`; line 29) to the account/organization you made 
+the repos. Then in the OS registry console, adjust the reporting images to point to your 
+newly created streams in Docker Hub. 
+
 '''
 
 import argparse
 import os
 import os.path
 import time
+import pprint
 
 from contextlib import contextmanager
 from functools import partial
@@ -110,8 +126,9 @@ def parse_args(routines, images):
   imggrp.add_argument("--images", nargs="*", choices=images)
 
   parser.add_argument("--oc-timeout", default=900,
-                      description="Timeout for Openshift actions in seconds")
+                      help="Timeout for Openshift actions in seconds")
   parser.add_argument("--project", default="reporting-testing")
+  parser.add_argument("--tag", default="latest")
   parser.add_argument("actions", nargs="+", choices=routines)
 
   return parser.parse_args()
@@ -130,11 +147,12 @@ def main():
 
   print("work: ", work)
   print("images: ", tgt_images)
-
+  print(f"tag: {args.tag}")
+  
   for actor in work:
     with actor(docker_client, args.project, args.oc_timeout) as action:
       for image in tgt_images:
-        action(image)
+        action(image,args.tag)
 
 if __name__ == '__main__':
   main()

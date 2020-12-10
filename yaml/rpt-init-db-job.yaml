@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: "${project_name}-init-db"
+  annotations:
+    openshift.io/display-name: "MOC Reporting Init DB Job"
+  tags: "jobs,reporting"
+  openshift.io/provider-display-name: "Mass Open Cloud"
+objects:
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    name: init-db
+  spec:
+    parallelism: 1
+    completions: 1
+    template: 
+      metadata:
+        name: init-db
+      spec:
+        activeDeadlineSeconds: 300
+        initContainers:
+        - name: check-db-conn
+          image: postgres:latest
+          env:
+          - secretRef:
+              name: "${project_name}-sec"
+          command: ['psql', '-c', '\q']
+        containers:
+        - name: init-db
+          image: >-
+            docker-registry.default.svc:5000/reporting-test/init-db:latest
+          env: 
+          - name: PGHOST
+            value: "${project_name}-svc"
+          - secretRef:
+              name: "${project_name}-sec"
+
+        restartPolicy: OnFailure
+parameters:
+- name: project_name
+  required: true

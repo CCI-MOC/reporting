@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Template
+objects:
+- apiVersion: "v1"
+  kind: "PersistentVolumeClaim"
+  metadata:
+    name: "${project_name}-db-pvc"
+    namespace: ${project_name}
+    labels:
+      app: postgres
+  spec:
+    accessModes:
+      - "ReadWriteOnce"
+    resources:
+      requests:
+        storage: ${db_size}
+    volumeMode: Filesystem
+parameters:
+- name: project_name
+  required: true
+- name: db_size
+  required: true

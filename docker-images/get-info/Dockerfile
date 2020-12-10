@@ -1,6 +1,5 @@
-
 # get-info
-FROM perl_cpan:latest
+FROM docker.io/robertbartlettbaron/perl_cpan:latest
 
 # Install Dependencies
 COPY ./cpan/Bundle/* 			/root/.cpan/Bundle/
