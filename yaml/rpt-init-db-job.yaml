@@ -22,20 +22,20 @@ objects:
         initContainers:
         - name: check-db-conn
           image: postgres:latest
-          env:
+          envFrom:
           - secretRef:
               name: "${project_name}-sec"
           command: ['psql', '-c', '\q']
         containers:
         - name: init-db
           image: >-
-            docker-registry.default.svc:5000/reporting-test/init-db:latest
-          env: 
-          - name: PGHOST
-            value: "${project_name}-svc"
+            docker.io/robertbartlettbaron/init-db:latest
+          envFrom: 
           - secretRef:
               name: "${project_name}-sec"
-
+          env:
+          - name: PGHOST
+            value: "${project_name}-svc"
         restartPolicy: OnFailure
 parameters:
 - name: project_name
