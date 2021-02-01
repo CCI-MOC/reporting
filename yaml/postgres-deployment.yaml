@@ -5,6 +5,7 @@ objects:
   kind: Deployment
   metadata:
     name: "${project_name}-dc"
+    namespace: ${project_name}
   spec:
     replicas: 1
     selector:
@@ -19,21 +20,26 @@ objects:
         name: postgres
       spec:
         containers:
-          - name: postgres
-            image: postgres:13
-            ports:
-              - containerPort: 5432
-                protocol: TCP
-            volumeMounts:
-              - mountPath: /var/lib/postgresql/data
-                name: postgres-data
-            envFrom:
-              - secretRef:
-                  name: "${project_name}-sec"
+        - name: postgres
+          image: postgres:13
+          ports:
+          - containerPort: 5432
+            protocol: TCP
+          volumeMounts:
+          - mountPath: /var/lib/postgresql
+            name: postgres-data
+          - mountPath: /docker-entrypoint-initdb.d
+            name: pg-setup
+          envFrom:
+          - secretRef:
+              name: "${project_name}-sec"
         volumes:
-          - name: postgres-data
-            persistentVolumeClaim:
-              claimName: "${project_name}-db-pvc"
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: "${project_name}-db-pvc"
+        - name: pg-setup
+          configMap:
+            name: postgres-setup
 parameters:
 - name: project_name
   required: true
