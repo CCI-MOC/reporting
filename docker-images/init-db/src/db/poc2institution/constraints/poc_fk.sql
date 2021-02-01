@@ -1,7 +1,0 @@
-
-ALTER TABLE poc2institution ADD CONSTRAINT poc2institution_poc_fk
-FOREIGN KEY (poc_id)
-REFERENCES poc (poc_id)
-ON DELETE NO ACTION
-ON UPDATE NO ACTION
-NOT DEFERRABLE;

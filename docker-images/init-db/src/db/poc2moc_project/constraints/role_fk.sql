@@ -1,7 +1,0 @@
-
-ALTER TABLE poc2moc_project ADD CONSTRAINT poc2moc_project_role_fk
-FOREIGN KEY (role_id)
-REFERENCES role (role_id)
-ON DELETE NO ACTION
-ON UPDATE NO ACTION
-NOT DEFERRABLE;
