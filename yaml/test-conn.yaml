@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-conn
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: test-conn
+      component: test-conn
+  template:
+    metadata:
+      name: test-conn
+      labels:
+        component: test-conn
+    spec:
+      containers:
+      - name: test-conn
+        image: postgres:13
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        envFrom:
+        - secretRef:
+            name: reporting-sec
+        command: ["sleep","6000"]
+        volumeMounts:
+        - mountPath: /pgconn
+          name: pgconn-volume
+      volumes:
+      - name: pgconn-volume
+        secret:
+          secretName: reporting-conn

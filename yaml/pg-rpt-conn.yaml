@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Template
+objects:
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: reporting-conn
+    namespace: ${project_name}
+  type: Opaque
+  stringData:
+    pgconn: "reporting-db-svc:5432:${pg_db}:${pg_user}:${pg_pass}"
+parameters:
+- name: project_name
+  required: true
+- name: pg_user
+  required: true
+- name: pg_pass
+  required: true
+- name: pg_db
+  required: true

@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: get-info
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: get-info
+      component: get-info
+  template:
+    metadata:
+      name: get-info
+      labels:
+        component: get-info
+    spec:
+      containers:
+      - name: get-info
+        image: docker.io/robertbartlettbaron/get-info
+        volumeMounts:
+        - name: billing-config
+          readOnly: true
+          mountPath: /billconf
+        env:
+        - name: CREDS_FILE
+          value: /billconf/billconf.json
+        - name: PGHOST
+          value: reporting-db-svc
+        - name: PGDATABASE
+          value: postgres
+        - name: PGUSER
+          value: admin
+        - name: PGPASSWORD
+          value: pass
+        - name: OSUSER
+          value: bill
+        - name: OSPASS
+          value: pass
+        - name: ZBXUSER
+          value: bill
+        - name: ZBXPASS
+          value: bill
+      volumes:
+      - name: billing-config
+        configMap:
+          name: billing-config
+
+
