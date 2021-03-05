@@ -1,0 +1,9 @@
+namespace: ${project_name}
+commonLabels:
+  app: reporting
+resources:
+  - postgres-deployment.yaml
+  - postgres-pvc.yaml
+  - postgres-service.yaml
+  - test-conn.yaml
+  - get-info.yaml
