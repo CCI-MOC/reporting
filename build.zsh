@@ -24,6 +24,9 @@ cp yaml/postgres-service.yaml work/postgres-service.yaml
 cp yaml/secret-generator.yaml work/secret-generator.yaml
 cp yaml/test-conn.yaml work/test-conn.yaml
 cp yaml/get-info.yaml work/get-info.yaml
+cp yaml/rpt-data-frontend.yaml work/rpt-data-frontend.yaml
+cp yaml/rpt-data-svc.yaml work/rpt-data-svc.yaml
+cp yaml/rpt-data-route.yaml work/rpt-data-route.yaml
 
 cd work
 oc apply -k . 
@@ -34,13 +37,11 @@ cd ..
 # "sleep", 60000
 # psql -d "host=reporting-db-svc port=5432 dbname=postgres user=admin password=pass" -c "\q"
 
-POSTGRES_PASSWORD=pass
-PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/lib/postgresql/13/bin
-POSTGRES_HOST=reporting-db-svc
-POSTGRES_USER=admin
-POSTGRES_PORT=5432
-POSTGRES_DATABASE=postgres
+# POSTGRES_PASSWORD=pass
+# PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/lib/postgresql/13/bin
+# POSTGRES_HOST=reporting-db-svc
+# POSTGRES_USER=admin
+# POSTGRES_PORT=5432
+# POSTGRES_DATABASE=postgres
 
 # psql -d "host=$POSTGRES_HOST port=$POSTGRES_PORT dbname=$POSTGRES_DATABASE user=$POSTGRES_USER password=$POSTGRES_PASSWORD" -c "\q"
-
-

@@ -7,3 +7,6 @@ resources:
   - postgres-service.yaml
   - test-conn.yaml
   - get-info.yaml
+  - rpt-data-frontend.yaml
+  - rpt-data-svc.yaml
+  - rpt-data-route.yaml
